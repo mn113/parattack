@@ -1,0 +1,159 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html>
+	<head>
+		<title>Parattack Redux</title>
+		<link rel="stylesheet" type="text/css" href="css/parattack1993.css" title="sprites1993"/>
+		<link rel="alternate stylesheet" type="text/css" href="css/parattack2009.css" title="sprites2009"/>
+		<script type="text/javascript" src="js/jquery-1.3.2.min.js"></script>
+		<script type="text/javascript" src="js/parattack_game.js"></script>
+		<script type="text/javascript" src="sm2/soundmanager2-nodebug-jsmin.js"></script>
+	</head>
+	<body>
+		<div id="gamefield">
+			<img id="title" src="img/title.jpg">
+			<div id="overlay" class="overlay">
+				<!--========================================================================-->
+				<div id="menu"><h2>Menu</h2>
+					<h3>Options</h3>
+					<form name="gameoptions">
+						<p>Sound fx:
+							<!--input type="radio" name="sfx" value="off"/>off
+							<input type="radio" name="sfx" value="on"/>on -->
+							[<a href="#" class="option selected" id="sfx_off">off</a>]
+							[<a href="#" class="option" id="sfx_on">on</a>]
+						</p>
+						<p>Music:
+							<!--input type="radio" name="music" value="off"/>off
+							<input type="radio" name="music" value="on"/>on -->
+							[<a href="#" class="option selected" id="music_off">off</a>]
+							[<a href="#" class="option disabled" id="music_on">on</a>]
+						</p>
+						<p>Graphics:
+							<!--input type="radio" name="gfx" value="1993"/>1993
+							<input type="radio" name="gfx" value="2009"/>2009 -->
+							[<a href="#" class="option selected" id="gfx_off">1993</a>]
+							[<a href="#" class="option" id="gfx_on">2009</a>]
+						</p>
+					</form>
+					<h3>Controls</h3>
+					<dl>
+						<dt>Aim left:</dt><dd>left arrow</dd><br />
+						<dt>Aim right:</dt><dd>right arrow</dd><br />
+						<dt>Aim faster:</dt><dd>shift</dd><br />
+						<dt>Fire:</dt><dd>space</dd><br />
+						<dt>Grenades:</dt><dd>z,x</dd>
+					</dl>
+					<div class="actions">
+						<a href="#" class="button" id="showrules">See rules</a>
+						<a href="#" class="button" id="startgame">Start game!</a>
+					</div>
+				</div>
+
+				<!--========================================================================-->
+				<div id="rules">
+					<h2>Rules</h2>
+					<p>You are the last soldier left standing to defend your country from hordes of invaders. You are in the firing seat of the most advanced Anti-Aircraft Gun known to man. The future of humanity depends on your skill and strategy!</p>
+					<p>Your mission: to shoot down any enemy aircraft and the paratroopers they will drop to try to dislodge you from your position. Press 'space' to fire bullets into the skies. Aim your gun left and right using the arrow keys.</p>
+					<p>You can move the gun faster by holding the shift key (but you have more accuracy without it).</p>
+					<p><em>Planes:</em> Shoot them down to gain extra ammo, and prevent them releasing more paras!</p>
+					<p><em>Paras:</em> Shoot them to bits before they land! If you let them land, they will trek to your bunker before teaming up to overthrow you.</p>
+					<p><em>Your Gun:</em> Your state-of-the-art bunker can hold off 1 or 2 paras, but 3 on one side will be the end of you.</p>
+					<p><em>Grenades:</em> Inevitably some paras will slip past your bullets and gather at your bunker. You can blow them away with a grenade tossed left (z) or right (x). Don't waste any, because you'll need them later!</p>
+					<p><em>Good luck, your people are depending on you!</em></p>
+					<div class="actions">
+						<a href="#" class="button" id="back">Back</a>
+					</div>
+				</div>
+
+				<!--========================================================================-->
+				<div id="paused">
+					<h2>Game Paused</h2>
+						<a href="#" class="button" id="resume">Resume</a>
+				</div>
+
+				<!--========================================================================-->
+				<div id="score">
+					<h2>Points Scored</h2>
+					<div class="stats"><a href="#">load score</a></div>
+					<div class="actions">
+						<a href="#" class="button" id="back">Back</a>
+						<a href="#" class="button" id="proceed">Onwards ho!</a>
+					</div>
+				</div>
+
+				<!--========================================================================-->
+				<div id="shop">
+					<h2>Quartermaster</h2>
+					<h4>Current score: <span>nul</span> points</h4>
+					<h5>&nbsp;</h5>
+					<p id="ammo50"><span>50 rounds</span><br><span class="shopitem"></span>Cost: 500 <a href="#" class="button">Buy</a></p>
+					<p id="ammo100"><span>100 rounds</span><br><span class="shopitem"></span>Cost: 900 <a href="#" class="button">Buy</a></p>
+					<p id="ammo250"><span>250 rounds</span><br><span class="shopitem"></span>Cost: 2200 <a href="#" class="button">Buy</a></p>
+					<p id="grenade"><span>Grenade</span><br><span class="shopitem"></span>Cost: 1750<a href="#" class="button">Buy</a></p>
+					<p id="defenceUpgrade"><span>Defence Upgrade</span><br><span class="shopitem"></span>Cost: 5000 <a href="#" class="button">Buy</a></p>
+					<p id="extraLife"><span>Extra Life</span><br><span class="shopitem"></span>Cost: 5000 <a href="#" class="button">Buy</a></p>
+					<p id="hamburger"><span>Hamburger</span><br><span class="shopitem"></span>Cost: 20 <a href="#" class="button">Buy</a></p>
+					<p id="bulletAccelerator"><span>Bullet Accelerator</span><br><span class="shopitem"></span>Cost: 7000 <a href="#" class="button">Buy</a></p>
+					<div class="actions">
+						<a href="#" class="button" id="back">Back</a>
+						<a href="#" class="button" id="proceed">Onwards ho!</a>
+					</div>
+				</div>
+
+				<!--========================================================================-->
+				<div id="victory">
+					<h2>Victory!</h2>
+					<div class="stats"></div>
+					<div class="actions">
+						<a href="#" class="button" id="showscore">Score</a>
+						<a href="#" class="button" id="showshop">Supplies</a>
+						<a href="#" class="button" id="proceed">Onwards ho!</a>
+					</div>
+				</div>
+
+				<!--========================================================================-->
+				<div id="gameover">
+					<h2>Game Over</h2>
+					<h4></h4>
+					<div class="stats"></div>
+					<div class="actions">
+						<a href="#" class="button" id="retry">Retry level</a>
+						<a href="#" class="button" id="quit">Quit</a>
+					</div>
+				</div>
+				<!--========================================================================-->
+
+
+			</div>
+			<div id="ground"></div>
+			<div id="gun" class="angle90"></div>
+			<div id="bunker"></div>
+			<div id="grenadestock"></div>
+			<p id="ammo">ammo</p>
+			<div id="killCount"></div>
+			<div id="lives"></div>
+			<div id="volumewidget">
+				<a href="#" id="vol_down">-</a>
+				<span>50</span>
+				<a href="#" id="vol_up">+</a>
+				<div href="#" id="vol_mute" class="unmuted"></div>
+			</div>
+			<!-- DEBUGGING: -->
+			<div id="debug">
+				<p class="stats" id="gameState"></p>
+				<p class="stats" id="gunAngle"></p>
+				<p class="stats" id="keypress"></p>
+			</div>
+		</div><!-- #gamefield end -->
+		<div id="tooltip">Please, don't click me there, it hurts!<br />Use keyboard left, right, and space to fire...</div>
+		<div id="debug2">
+			<h3>Active objects:</h3>
+			<p id="activePlanes"></p>
+			<p id="activeBullets"></p>
+			<p id="activeAirParas"></p>
+			<p id="activeGroundParas"></p>
+			<p id="activeBunkerParas"></p>
+		</div>
+		<!--script type="text/javascript">Cufon.now();</script-->
+	</body>
+</html>
