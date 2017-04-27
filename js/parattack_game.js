@@ -9,7 +9,7 @@ var globalSels = {		// prepare jQuery selectors for static elements -- NOT WORKI
 	ammo : 				$('#ammo'),
 	grenadeStock : 		$('#grenadeStock'),
 	killCount : 		$('#killCount'),
-	killIcon : 			$('<div class="kill"></div>')	// string	
+	killIcon : 			$('<div class="kill"></div>')	// string
 }
 
 var level = 1;
@@ -41,7 +41,6 @@ var gameParams = {		// Game constants only
 	levelIntensities:[0.3, 0.35, 0.4, 0.45, 0.5, 0.55, 0.6, 0.666],
 	comboPoints:[125,250,500,750],
 	planeQuotas: {
-//		level1:[.00,.20,.20,.00,.60,.00,.00],			// level 1: 100%	for messerschmitt testing
 		level1:[.30,.25,.20,.15,.05,.05,.00],			// level 1: 100%
 		level2:[.27,.23,.20,.16,.07,.05,.02],			// level 2: 100%
 		level3:[.24,.21,.19,.17,.09,.06,.04],			// level 3: 100%
@@ -64,7 +63,7 @@ var entities = {	// Holds the sprite objects created and destroyed each level
 	pid:1,			// Plane, bullet, man (para) counters
 	bid:1,
 	mid:1,
-	
+
 	resetAll: function() {
 		this.activePlanes = [];
 		this.activeParas = [];
@@ -121,7 +120,7 @@ var levelStats = {
 		timeScore:0,
 		paraScore:0,
 		levelScore:0,
-		
+
 		calcScore: function() {
 			this.levelBonus = (player.levelsCompleted[level-1] == true) ? 500 : 0;					// gain 500 for beating the level
 			planeScore = 0;
@@ -133,11 +132,11 @@ var levelStats = {
 			this.timeScore = 600 - levelStats.levelTime; 											// finish inside 10 minutes to score points here
 			this.paraScore = (levelStats.landedParas == 0) ? 1500 : -25 * levelStats.landedParas;	// bonus for flawless victory
 			this.levelScore = (this.levelBonus + this.planeScore + this.accuScore + this.timeScore + this.paraScore);	// Total score for this level
-			
+
 			player.scores.allLevelScores[level-1] = this.levelScore;								// Store it in array
 			player.scores.spendableScore += this.levelScore;										// Add latest score to cumulator
 			player.scores.cumulativeScore += this.levelScore;										// Add latest score to cumulator
-		
+
 			this.checkRewards();
 		},
 
@@ -150,7 +149,7 @@ var levelStats = {
 							'<p>Ground penalty: '+this.paraScore+'</p>'+
 							'<p>Level score: '+this.levelScore+'</p>'+
 							'<p>Game score so far: '+player.scores.spendableScore+'</p>';
-			
+
 			if (this.parascore>0) scoreHtml.replace('Ground penalty','Ground bonus');
 
 			return scoreHtml;
@@ -184,7 +183,7 @@ var levelTimer = {
 	startTime: null,
 	stopTime: null,
 	elapsed: 0,
-	
+
 	start: function() {
 		var tstart = new Date();
 		this.startTime = tstart.getTime();
@@ -196,11 +195,11 @@ var levelTimer = {
 		this.elapsed += Math.floor(0.001*(this.stopTime - this.startTime));		// store what's elapsed so far (in seconds)
 		return this.elapsed;
 	},
-	
+
 	reset: function() {
 		this.elapsed = 0;
 	},
-	
+
 	formatTime: function() {
 		var e = this.elapsed;		// in seconds
 		var h = Math.floor(e/3600);	// number of whole hours (typically 0)
@@ -244,7 +243,7 @@ $('img#title').click(function() {
 /******************/
 /*! AJAX OVERLAYS */
 /******************/
-$.ajaxSetup ({   
+$.ajaxSetup ({
 	cache: true
 });
 
@@ -256,7 +255,7 @@ $("#overlay .stats a").live("click", function() {
 function showOverlay(overlay, type) {
 	if (!($('#overlay').is(':visible'))) {
 		$('#overlay').show().animate({"top":0}, 500, 'linear');
-		//slideDown(800);		// Only animates in if not already visible	
+		//slideDown(800);		// Only animates in if not already visible
 	}
 
 	$('#overlay').children().hide()					// Hide all
@@ -267,64 +266,63 @@ function showOverlay(overlay, type) {
 		game.lastOverlay = 'menu';
 		game.state = 'menu';
 		// set options to last known state?
-		break;	
+		break;
 
 	case 'rules':
 		// nada
-		break;	
+		break;
 
 	case 'paused':
 		// add stats?
-		break;	
+		break;
 
 	case 'score':
 		$("#score .stats").html(levelStats.scores.loadScore());		// DOESN'T WORK
-		break;	
+		break;
 
 	case 'shop':
 		$('#shop h4 span').html(player.scores.spendableScore);	// Refresh points
 		$('#shop h5').html();									// Clear message
-		// update shop inventory	
+		// update shop inventory
 		break;
 
 	case 'victory':
 		player.levelsCompleted[level-1] = true;
 		levelStats.scores.calcScore();
 		game.lastOverlay = 'victory';
-		game.state = 'between';	
-	
+		game.state = 'between';
+
 		if (type == 0) $('#victory h2').html("Victory!");					// Standard h2 heading for victory screen
 		else if (type == 1) $('#victory h2').html("Flawless Wicktory!");	// Alternative h2 heading for victory screen
-	
+
 		showStats('victory');
-		break;	
+		break;
 
 	case 'gameover':
 		game.lastOverlay = 'gameover';
-		
+
 		var msgs = {
 			2: 'Paras stormed your bunker :(',
 			3: 'With no more ammo, it was only a matter of time...',
 			4: 'Cancelled by player'
 		}
-		
+
 		$('#gameover h4').html(msgs[type]);		// Insert the reason for loss
-		
+
 		player.lives--;					// Lose 1 life
 		updateLives();
-		
+
 		if (player.lives > 0) {
 			showStats('gameover');
 		}
 		else {
 			game.state = 'over';
 			// GAME OVER! (FOR REAL!)
-			// display highscores form
 		}
 		break;
 	default:
 		// whatever
-	}	
+	}
 }
 
 function hideOverlay() {
@@ -355,10 +353,10 @@ function showStats(overlay) {
 	}
 	statsHtml += '<div class="scoreplane para"></div><p class="total">x'+levelStats.allKillsThisLevel[7]+'</p>';
 	statsHtml += '<br /><br /></div>';
-	
+
 	$('#'+overlay+' .stats').html(statsHtml);	// Display it in the requesting overlay
 	game.statsShown = true;
-	
+
 	var successword = (player.levelsCompleted[level-1]) ? 'completed' : 'failed';
 	console.log('Level '+level+' '+successword+'. Bullets fired: '+levelStats.bulletsFired+', Hits: '+levelStats.hits+', Shooting accuracy: '+levelStats.accuracy)+'. Skill: '+assessSkill();
 }
@@ -373,7 +371,7 @@ $('#overlay').click(function(e){
 
 	if ($(e.target).hasClass('button')) {
 		if (options.sfxEnabled) sounds.click.play();		// CLICK NOT WORKING?
-		
+
 		switch(clickedID) {
 		case 'startgame':
 			// Process menu selections:
@@ -382,53 +380,53 @@ $('#overlay').click(function(e){
 			if (options.gfxEnabled) swapSprites(2009);
 			if (options.sfxEnabled || options.musicEnabled) $('#volumewidget').show();
 			startLevel(1);
-			break;	
-	
+			break;
+
 		case 'proceed':
 			startLevel(level+1);
-			break;	
-	
+			break;
+
 		case 'retry':
 			player.gun.ammo = player.gun.savedAmmo; // Get our saved ammo level back (retrying level)
 			updateStats();
 			startLevel(level);
-			break;	
-	
+			break;
+
 		case 'quit':
 			window.location.reload();	// Reload the page (restarts game)
-			break;	
-	
+			break;
+
 		case 'showrules':
 			showOverlay('rules');
-			break;	
-	
+			break;
+
 		case 'showscore':
 			showOverlay('score');
-			break;	
-	
+			break;
+
 		case 'showshop':
 			showOverlay('shop');
-			break;	
-	
+			break;
+
 		case 'back':
 			showOverlay(game.lastOverlay);
-			break;	
-	
+			break;
+
 		case 'resume':
 			unpause();
-			break;	
+			break;
 
-		default: 
+		default:
 			// anything?
-		}		
+		}
 	}
-	else if ($(e.target).hasClass('option') && !($(e.target).hasClass('disabled'))) {	// Radio-esque buttons	
+	else if ($(e.target).hasClass('option') && !($(e.target).hasClass('disabled'))) {	// Radio-esque buttons
 
 		var prefix = clickedID.substr(0,3);				// First part of id, e.g. 'sfx'
 		var suffix = clickedID.substr(-2,2);			// Last part, e.g. 'on'
-		$('a[id ^= '+prefix+']').removeClass('selected');	
+		$('a[id ^= '+prefix+']').removeClass('selected');
 		$(e.target).addClass('selected');
-	
+
 		switch(prefix) {
 		case 'sfx':
 			options.sfxEnabled = (suffix == 'on') ? true : false;
@@ -439,8 +437,8 @@ $('#overlay').click(function(e){
 		case 'gfx':
 			options.gfxEnabled = (suffix == 'on') ? true : false;
 			break;
-		}		
-	}	
+		}
+	}
 	return false;	// Whatever it was, don't follow <a href="#">
 });
 
@@ -551,7 +549,7 @@ var shop = {
 			$('#shop h4 span').html(player.scores.spendableScore);	// Refresh points
 		}
 	},
-	
+
 	showMessage: function(string) {
 		$('#shop h5').html(string)
 					 .slideDown(500)
@@ -586,7 +584,7 @@ var sounds = {		// Empty container for all the sounds to be used
 	splatargh: null,	// splatargh.mp3
 	dive: null,			// stukadive1sec.mp3
 	combo1: null,
-	combo2: null,	
+	combo2: null,
 	grenade: null,
 	driveby: null,
 	bunkerStorm: null,	// bugle64.mp3
@@ -600,7 +598,7 @@ var sounds = {		// Empty container for all the sounds to be used
 };
 
 soundManager.url = 'sm2/';
-soundManager.debugMode = false; 
+soundManager.debugMode = false;
 soundManager.onload = function() {
 	// SM2 is ready to go!
 	sounds.click = soundManager.createSound({id: 'sfx_click', url: 'sm2/mp3/click.mp3', volume: 50});
@@ -646,7 +644,7 @@ soundManager.setGameVolume = function(incr) {	// Normally -10 or +10
 	// Master volume:
 	if (this.gameVolume + incr >= 0 && this.gameVolume + incr <= 100) {	// Stay in 0-100 range
 		this.gameVolume += incr;
-	
+
 		for (var i in soundManager.soundIDs) {
 			var sobj = soundManager.sounds[soundManager.soundIDs[i]];	// Access the sound object from its ID
 			sobj.setVolume(sobj.volume + incr);							// Update the sound object's volume
@@ -660,7 +658,7 @@ soundManager.setGameVolume = function(incr) {	// Normally -10 or +10
 soundManager.gameMuteToggle = function() {
 	if (soundManager.muted) {
 		soundManager.unmute();
-	} 
+	}
 	else if (!(soundManager.muted)) {
 		soundManager.mute();
 	}
@@ -697,13 +695,13 @@ function startLevel(n) {
 	player.gun.angle = 90;
 	setGrenades();
 	updateLives();
-	
+
 	// Reset enemies to zero:
 	entities.resetAll();
 
 	// Set level parameters:
 	level = n;
-	levelStats.killsNeeded = gameParams.killsNeededPerLevel[level-1];	
+	levelStats.killsNeeded = gameParams.killsNeededPerLevel[level-1];
 	levelStats.hits = 0;
 	levelStats.planeKills = 0;
 	levelStats.allKillsThisLevel = [0,0,0,0,0,0,0,0] ;	// Clear kill counter for the 8 enemy types
@@ -713,9 +711,9 @@ function startLevel(n) {
 	levelStats.bulletsFired = 0;
 	levelStats.driveBys = (level == 8) ? 3 : 1;
 	//levelStats.resetAll(); 		// TBD - replaces the above block
-	
+
 	player.gun.savedAmmo = player.gun.ammo; // Save our ammo level for retries
-	
+
 	// Go:
 	levelTimer.reset();
 	levelIntro(n);
@@ -724,12 +722,13 @@ function startLevel(n) {
 function levelIntro(n) {		// Make the biplane fly across screen with level name
 	game.state = 'intro';
 	if (options.sfxEnabled) sounds.introPlane.play();
-	$('<div id="introplane"><span class="level'+n+'"></span></div>').prependTo('#gamefield')
-																	.animate({"left":"-250px"}, 5000, 'linear', function() {
-																		$(this).remove();
-																		game.state = 'running';
-																		runGame();				// start the level action!
-																	});
+	var $biplane = $('<div id="introplane"><span class="level'+n+'"></span></div>');
+	$biplane.prependTo('#gamefield')
+			.animate({"left":"-250px"}, 5000, 'linear', function() {
+				$(this).remove();
+				game.state = 'running';
+				runGame();	// start the level action!
+			});
 }
 
 
@@ -745,7 +744,7 @@ function pause() {
 	// Clear generators & animators
 	loops.stopAll();
 
-//	showPaused();
+	//showPaused();
 	showOverlay('paused');
 	console.log("game paused");
 }
@@ -782,9 +781,9 @@ function gameOver(reason) {
 
 	// Clean up gamefield:
 	$('div.plane, div.para, div.bullet, div.combo').remove();
-	entities.activePlanes = [];					
+	entities.activePlanes = [];
 	entities.activeParas = [];
-	entities.activeBullets = [];		
+	entities.activeBullets = [];
 	entities.groundParasL = [];
 	entities.groundParasR = [];
 	entities.bunkerParasL = [];
@@ -820,50 +819,50 @@ var loops = {	// Variables used to manage setInterval loops which run game
 	paraWalk: null,
 	driveByCheck: null,
 	cleanup: null,
-	
+
 	runAll: function() {
-		this.collisionLoop = setInterval(function() {	// Start collision detection loop 
+		this.collisionLoop = setInterval(function() {	// Start collision detection loop
 			detectCollisions();
 		}, 50);
-	
+
 		this.killsLoop = setInterval(function() {
 			if (levelStats.planeKills % 40 == 0) $('#killCount').html();			// Reset kill icons after 40
 			if (levelStats.planeKills >= levelStats.killsNeeded) gameOver(1);		// Enough kills to beat the level!
 		}, 1000);
-		
+
 		this.planeGen = setInterval(function() {			// Start plane generator
 			planeGenerator();
 		}, 750);
-		
+
 		this.paraGen = setInterval(function() {				// Start para generator
 			paraGenerator();
 		}, 2500);
-	
+
 		this.paraFall = setInterval(function() {			// Falling paras animate every second
 			animateParas();
 		}, 1000);
-	
+
 		this.paraWalk = setInterval(function() {			// Ground paras walk every second
 			walkParas();
 		}, 1000);
-	
+
 		this.cleanup = setInterval(function() {				// Remove expired objects
 			cleanup();
 		}, 5000);
-		
+
 		this.driveByCheck = setInterval(function() {		// Make a drive-by occur once per level when the situation is desperate
 			var a = (levelStats.driveBys > 0) ? true : false;
 			var b = (entities.bunkerParasR.length >= 2 || entities.bunkerParasL.length >= 2) ? true : false;
 			var c = (entities.groundParasR.length + entities.groundParasL.length > 4 ) ? true : false;
 			var d = (Math.random() > 0.8) ? true : false;		// 1 in  5 chance
-			
+
 			if (a && b && c && d) {
 				driveBy();
 				levelStats.driveBys--;
 			}
-		}, 10000);	// Try every 10 seconds		
+		}, 10000);	// Try every 10 seconds
 	},
-	
+
 	stopAll: function() {
 		clearInterval(this.collisionLoop);				// Stop the generators
 		clearInterval(this.killsLoop);
@@ -913,7 +912,7 @@ function updateStats() {
 	$('#activeAirParas').html(activeAirParasString);
 	$('#activeGroundParas').html(activeGroundParasString);
 	$('#activeBunkerParas').html(activeBunkerParasString);
-}	
+}
 
 function setGrenades() {
 	$('#grenadestock .gr').remove();						// Clear grenade display
@@ -926,16 +925,16 @@ function updateLives() {
 	$('#lives').html('');										// Clear lives display
 	for (var i=0; i<player.lives; i++) {
 		$('<div class="heart"></div>').appendTo('#lives');		// Add in the current number remaining
-	}	
+	}
 }
 
 function assessSkill() {
 	var playerSkill = 0;						// Only last level contributes to skill
 	playerSkill += (player.lives-3)*0.02				// 3 lives left: no effect
-	playerSkill += (levelStats.accuracy-15)*0.0075;		// 15% accuracy threshold: score 25, +0.075  
+	playerSkill += (levelStats.accuracy-15)*0.0075;		// 15% accuracy threshold: score 25, +0.075
 	playerSkill += (player.gun.ammo < 100) ? -0.05 : 0;	// if ammo under 100, lose 0.05
 	playerSkill -= levelStats.landedParas*0.01;			// 5 paras landed: -0.05
-	playerSkill += (player.grenades-3)*0.005;			// Use your grenades, skill decreases					
+	playerSkill += (player.grenades-3)*0.005;			// Use your grenades, skill decreases
 	playerSkill += (1.2 - (levelStats.allKillsThisLevel[7]/(levelStats.planeKills + 1)))*0.05;	// Para/plane ratio above 1.2, lose skill
 	console.log("Player's total skill: "+playerSkill);
 
@@ -959,38 +958,30 @@ function formatAmmo(ammo) {
 	if (ammo<100) ammoString += '0';
 	if (ammo<10) ammoString += '0';
 	ammoString += ammo;
-	
+
 	if (ammo < 10) $('#ammo').addClass('low');
 	else $('#ammo').removeClass('low');
-					
+
 	return ammoString; // formatted as 4-character number string e.g. '0001'
 }
 
 function testAmmo() {
-	var ammoTest1 = (player.gun.ammo == 0) ? true : false;
-	if (ammoTest1) {															// If ammo is 0,
+	if (player.gun.ammo == 0) {
 		setTimeout(function() {
-			var ammoTest2 = (player.gun.ammo == 0) ? true : false;				// Check #2 in 5 seconds
-			if (ammoTest2) {
-				setTimeout(function() {
-					var ammoTest3 = (player.gun.ammo == 0) ? true : false;		// Check #3 after 10 seconds
-						// If ammo still zero after 10 seconds, assume all hope is lost:
-						if (ammoTest1 && ammoTest2 && ammoTest3) {
-							gameOver(3);
-						}
-				}, 5000);
-			}
+				// If ammo still zero after 5 seconds, and all moving bullets gone, assume all hope is lost:
+				if (player.gun.ammo == 0 && entities.activeBullets.length == 0) {
+					gameOver(3);
+				}
 		}, 5000);
 	}
 }
-// SHORTER: wait 5 seconds -> if (player.gun.ammo == 0 && entities.activeBullets.length == 0) gameOver(3);
 
 
-function updateGunAngle(increment) {		
+function updateGunAngle(increment) {
 	if (player.gun.angle + increment >= 0 && player.gun.angle + increment <= 180) {	// stay within bounds of 15 - 165 degrees
 		player.gun.angle += increment;
 	}
-	
+
 	var $gun = $('#gun');		// select gun
 	$gun.removeClass();		// remove all gun's classes
 	if (player.gun.angle>=0 && player.gun.angle<7.5) $gun.addClass('angle0');
@@ -1008,13 +999,13 @@ function updateGunAngle(increment) {
 	else if (player.gun.angle>=172.5 && player.gun.angle<=180.0) $gun.addClass('angle180');
 	else $gun.addClass('angle90');
 
-	findTarget();								
-	updateStats();								
+	findTarget();
+	updateStats();
 }
 
 function findTarget(gunAngle) {
 	var XTarget = Math.round(400 + (548 * Math.tan((gunAngle-90)*Math.PI/180)));		// calculate target x-coord
-	return XTarget;				
+	return XTarget;
 }
 
 function explodeGun() {
@@ -1024,7 +1015,7 @@ function explodeGun() {
 		     .animate({"left":"-=12px"}, 1)			// Shift left to accommodate explosion sprite
 			 .fadeOut(2000, function() {			// Fade out (takes longer than explode animation)
 					gameOver(2);
-			 });							
+			 });
 	explode($('#gun'));
 }
 
@@ -1032,17 +1023,17 @@ function explodeGun() {
 /*********************/
 /*! BULLET FUNCTIONS */
 /*********************/
-function newBullet() {	
+function newBullet() {
 	if (entities.activeBullets.length < gameParams.maxBullets) {	// room for another bullet?
 		var bulletID = 'bullet' + entities.bid;						// e.g. "bullet33"
-	
+
 		var $bullet = $('<div id="'+ bulletID +'"></div>')	// Create bullet element
 					.addClass('bullet')
 					.data("bid",entities.bid)
 					.appendTo('#gamefield');				// Add bullet to document
 		entities.activeBullets.push($bullet);				// Register bullet
 		entities.bid++;
-	
+
 		// Shoot the bullet:
 		var XTarget = findTarget(player.gun.angle);
 		var bulletTime = (548/Math.abs(Math.cos((player.gun.angle-90)*Math.PI/180)))/gameParams.bulletSpeed;	// Bullet animation time = distance over speed
@@ -1051,15 +1042,15 @@ function newBullet() {
 			   .data("bulletTime", bulletTime)											// Attach its total travel time
 			   .data("hits",0)
 			   .animate({"top":"0","left":XTarget}, bulletTime, "linear", function() {	// Move the bullet
-					$(this).remove();													// When anim finishes, remove bullet	
+					$(this).remove();													// When anim finishes, remove bullet
 					deregisterBullet(this);
 			   });
 
 		if (options.sfxEnabled) sounds.bullet.play();
 		levelStats.bulletsFired++;
-		player.gun.ammo--;					
+		player.gun.ammo--;
 		testAmmo();		// Check if ammo stuck on zero
-		updateStats();				
+		updateStats();
 	}
 }
 
@@ -1078,11 +1069,11 @@ function resumeBullets() {					// Restart bullets on unpause
 		var y = parseInt($bullet.css("top"));		// Read its y-coord
 		var oldTime = $bullet.data("bulletTime");	// Read its old travel time
 		var newTime = oldTime * y/548;				// Calculate the new travel time
-		
+
 		$bullet.animate({"top":"0","left":XTarget}, newTime, "linear", function() {	// Re-animate the bullet
-			$(this).remove();														// When anim finishes, remove bullet		
-			deregisterBullet(this);		
-		});	
+			$(this).remove();														// When anim finishes, remove bullet
+			deregisterBullet(this);
+		});
 	}
 }
 
@@ -1103,7 +1094,7 @@ function testComboChain(hid) {
 	levelStats.comboChain.push(hid);							// Add the new hitting bullet ID
 	var n = levelStats.comboChain.length;							// Array should never be empty except at start of level
 
-	if (n>1) {	
+	if (n>1) {
 		if (levelStats.comboChain[n-1] - levelStats.comboChain[n-2] == 1) {	// If newest bullet makes a consecutive hit,
 			var comboSize = n-1;					// Return the new combo length
 		}
@@ -1113,7 +1104,7 @@ function testComboChain(hid) {
 			var comboSize = 0;						// No combo awarded
 		}
 	}
-	
+
 	return (comboSize) ? comboSize : 0;				// Return comboSize if valid, or 0
 }
 
@@ -1135,7 +1126,7 @@ function grenade(side) {
 								explode($nade);
 							})
 						});
-					});		   
+					});
 	player.grenades--;
 	setGrenades();
 	updateStats();
@@ -1150,7 +1141,7 @@ function killGPs(groundzero) {
 		var x = $para.position().left;
 		if (x <= groundzero+20 && x >= groundzero-20) {	// If he's in the blast zone,
 			console.log($para.attr("id")+" is going home in a plastic bag.");
-			$para.remove()		
+			$para.remove()
 			// Play sound if hit:
 			if (options.sfxEnabled) {
 				(Math.random() > 0.5) ? sounds.paraHit1.play() : sounds.paraHit2.play();
@@ -1166,15 +1157,15 @@ function rebuildGroundArrays() {			// After slaughterings, rebuild the 4 arrays 
 	entities.groundParasR = [];				// Clear all the arrays
 	entities.groundParasL = [];
 	entities.bunkerParasR = [];
-	entities.bunkerParasL = [];	
-	
+	entities.bunkerParasL = [];
+
 	$('#gamefield div.para.ground').each(function() {		// Get every para on the ground
 		var idpfx = $(this).attr("id").substr(0,6);
 		// Assign him to the correct array:
-		if (idpfx == 'bunker' && $(this).hasClass('left')) entities.bunkerParasL.push($(this));	
-		if (idpfx == 'ground' && $(this).hasClass('left')) entities.groundParasL.push($(this)); 
-		if (idpfx == 'bunker' && $(this).hasClass('right')) entities.bunkerParasR.push($(this)); 
-		if (idpfx == 'ground' && $(this).hasClass('right')) entities.groundParasR.push($(this)); 
+		if (idpfx == 'bunker' && $(this).hasClass('left')) entities.bunkerParasL.push($(this));
+		if (idpfx == 'ground' && $(this).hasClass('left')) entities.groundParasL.push($(this));
+		if (idpfx == 'bunker' && $(this).hasClass('right')) entities.bunkerParasR.push($(this));
+		if (idpfx == 'ground' && $(this).hasClass('right')) entities.groundParasR.push($(this));
 	});
 	updateStats();
 }
@@ -1190,12 +1181,12 @@ function driveBy() {
 			var $para = $(allParas[i]);							// Get the para object
 			var pos = parseInt($para.css("left"));				// Get the para coord
 			var carPos = parseInt($car.css("left"));			// Get the car coord
-	
+
 			if (pos >= carPos && pos <= carPos+38) {		// When collision detected,
 					$para.remove();							// The para dies
 					console.log($para.attr("id")+' got squished!');
 			}
-		}	
+		}
 	}, 75);				// when driveBy() is called, run collision detection every 75ms
 
 	console.log("Car start");
@@ -1204,9 +1195,10 @@ function driveBy() {
 		console.log("Car end");
 		clearInterval(runOverParas);									// Screen traversed, stop detecting collisions
 	});
-	
+
 	rebuildGroundArrays();		// Clears the arrays
 }
+
 
 /********************/
 /*! PLANE FUNCTIONS */
@@ -1216,7 +1208,7 @@ function newPlane(type) {
 		var planeType = gameParams.planeTypes[type];
 		var planeSpeed = gameParams.planeSpeeds[type];
 		var planeID = planeType + entities.pid;								// Make a unique id e.g. "blimp12"
-	
+
 		var $plane = $('<div id="'+planeID+'"></div>')						// Create a new plane element
 			.addClass('plane')
 			.addClass(planeType)											// e.g. "blimp"
@@ -1228,7 +1220,7 @@ function newPlane(type) {
 			.prependTo('#gamefield');										// Add it to the document
 		if (Math.random() > 0.5) {											// Flip it 50% of the time
 			$plane.addClass('rtl')
-				  .data("dest", "-50px");							
+				  .data("dest", "-50px");
 		}
 		else {
 			$plane.addClass('ltr')
@@ -1243,7 +1235,7 @@ function newPlane(type) {
 		$plane.animate({"left": dest}, planeSpeed, "linear", function() {	// Start it moving
 			deregisterPlane($plane);
 			$(this).remove();												// When anim finishes, remove it
-		});		
+		});
 		updateStats();
 	}
 }
@@ -1292,9 +1284,9 @@ function divePlane($plane) {			// Make Messerschmitts dive and crash
 				//explode($plane);		// CAUSES FREEZING
 				// explode() function duplicated here:	// WASTEFUL!
 				if (options.sfxEnabled) sounds.explosion.play();		// BOOM!
-			
+
 				$plane.stop().removeClass('rtl').removeClass('ltr').addClass('exploding').addClass('fr1');
-			
+
 				setTimeout(function() {
 					$plane.removeClass('fr1').addClass('fr2');			// Swap sprite after 120
 					setTimeout(function() {
@@ -1322,7 +1314,7 @@ function explodePlane($plane) {
 		//sounds[eval($plane.data("planeType"))].stop();	// Stop the sound of that plane (WHAT IF 2 FLYING?)
 		//soundManager.stop(eval('sfx_'+$plane.data("planeType")));	// Stops the sound by soundid
 	}
-	
+
 	$plane.stop(true);		// clearQueue enabled	// Stop it
 
 	explode($plane);
@@ -1360,7 +1352,7 @@ function resumePlanes() {
 		var x = $plane.position().left;				// Get its x-coord
 		var speed = $plane.data("speed");			// Read its speed data
 		var dest = $plane.data("dest");				// Read its destination
-		
+
 		if ($plane.hasClass('ltr')) {			// Calculate remaining flight time
 			newTime = speed * (800-x)/800;
 		}
@@ -1370,8 +1362,8 @@ function resumePlanes() {
 
 		$plane.animate({"left": dest}, newTime, 'linear', function() {	// Re-animate the plane
 			$plane.remove();
-			deregisterPlane($plane);				
-		});				
+			deregisterPlane($plane);
+		});
 	}
 }
 
@@ -1387,7 +1379,7 @@ function newPara($plane) {
 		var planeY = $plane.position().top;
 		var dropX = planeX + 'px';				// Para's creation coords
 		var dropY = (planeY + 15 ) + 'px';
-		
+
 		var $para = $('<div id="'+paraID+'"></div>')		// Create a new para element
 				.data("mid", entities.mid)
 				.addClass('para')
@@ -1395,7 +1387,7 @@ function newPara($plane) {
 				.css({"left":dropX, "top":dropY})			// Give para the coords
 				.prependTo('#gamefield');					// Add him to the document
 		entities.activeParas.push($para);					// Register para
-		entities.mid++;		 
+		entities.mid++;
 
 		if (planeX > 350 && planeX <= 400) {
 			$para.animate({"left":"-=50px", "top":"+=50px"}, 3000);	// Drift para out of 100px central channel
@@ -1405,11 +1397,11 @@ function newPara($plane) {
 		}
 		if (planeX > 790) {
 			$para.animate({"left":"-=50px", "top":"+=50px"}, 3000);	// Drift away from screen edges
-		}		
+		}
 		if (planeX < 10 || isNaN(planeX)) {
 			$para.animate({"left":"+=50px", "top":"+=50px"}, 3000);
-		}		
-	
+		}
+
 		$para.animate({"top":"564px"}, gameParams.paraSpeed, "linear", function() {	// Drop him
 			paraLand($para);
 		});
@@ -1436,13 +1428,13 @@ function killPara($para) {
 		}
 	}
 
-	$para.stop(true)	// clearQueue enabled - terminates any earlier animation and guarantees his removal			
+	$para.stop(true)	// clearQueue enabled - terminates any earlier animation and guarantees his removal
 		 .removeClass('normal')
 		 .removeClass('alt')
 		 .addClass('shot1')
 		 .animate({"top":"+=2px"}, 200, function() {	// His death animation
 			$(this).removeClass('shot1')
-				   .addClass('shot2')			
+				   .addClass('shot2')
 		 })
 		 .animate({"top":"+=2px"}, 200, function() {
 			$(this).remove();
@@ -1458,7 +1450,6 @@ function deregisterPara($para) {
 	updateStats();
 }
 
-
 function resumeParas() {
 	for (var i in entities.activeParas) {
 		var $para = $(entities.activeParas[i]);				// Get para from DOM
@@ -1467,7 +1458,7 @@ function resumeParas() {
 
 		$para.animate({"top":"564px"}, newSpeed, 'linear', function() {
 			if ($para.position().top == 564) paraLand($para);		// Now he can land
-		});		
+		});
 	}
 }
 
@@ -1482,7 +1473,7 @@ function paraLand($para) {
 
 	deregisterPara($para);						// Deregister from paras
 	levelStats.landedParas++;
-	
+
 	$para.removeClass('normal')					// Convert para to a groundPara
 		   .removeClass('alt')
 		   .addClass('ground')
@@ -1509,7 +1500,7 @@ function walkParas() {
 
 		var pos = $groundPara.position().left;
 		var dest = parseInt($groundPara.data("dest"));
-		
+
 		if (Math.abs(pos - dest) < 2) {						// If he's really close...
 			reachBunker($groundPara);						// He's allowed to reach the bunker
 		}
@@ -1553,7 +1544,7 @@ function reachBunker($groundPara) {
 		entities.bunkerParasR.push($groundPara);					// Register him as a bunker para (R)
 		console.log($groundPara.attr("id") + " arrived at the right bunker");
 	}
-	
+
 	$groundPara.addClass("bunker");			// Causes his walk cycle to stop being called
 
 	// Make them line up:
@@ -1576,7 +1567,7 @@ function paraBunkerStorm(side) {
 	// animate paras storming the bunker
 	console.log('paras are storming your bunker on the '+side+' side!');
 	if (options.sfxEnabled) sounds.bunkerStorm.play();
-	
+
 	if (side=='right') {
 		$(entities.bunkerParasR[0]).animate({"top":"560px","left":"440px"}, 700, 'linear', function() {
 			$(entities.bunkerParasR[1]).animate({"top":"542px","left":"440px"}, 800, 'linear', function() {
@@ -1587,7 +1578,7 @@ function paraBunkerStorm(side) {
 						.appendTo('#gamefield')
 						.animate({"left":"400px"}, 1000, 'linear', function() {		// Fire a bullet at the gun
 							$(this).remove();
-							explodeGun();							
+							explodeGun();
 						});
 				});
 			});
@@ -1603,7 +1594,7 @@ function paraBunkerStorm(side) {
 						.appendTo('#gamefield')
 						.animate({"left":"400px"}, 1000, 'linear', function() {		// Fire a bullet at the gun
 							$(this).remove();
-							explodeGun();							
+							explodeGun();
 						});
 				});
 			});
@@ -1622,10 +1613,10 @@ function planeGenerator() {		// Generate planes randomly, based on quotas & leve
 	if (r < gameParams.levelIntensities[level-1]) {	// 30% to 66% chance we make a new plane this time
 		var rn = Math.random();
 		var thr = 0;								// Threshold starts at 0
-		
+
 		for (var i in gameParams.planeQuotas['level'+level]) {	// For each plane's quota:
 			thr += gameParams.planeQuotas['level'+level][i];	// Set threshold for that plane
-			if (rn < thr) {										// Test it 
+			if (rn < thr) {										// Test it
 				newPlane(i);									// If true, create that plane
 				break;											// And stop testing
 			}
@@ -1657,7 +1648,7 @@ function detectCollisions() {
 			$bullet.remove();
 			continue;					// Don't test this one but continue testing the rest of the bullets
 		}
-		
+
 		// Test against paras first (bullet can pass through them):
 		for (var j in entities.activeParas) {							// 5 paras max
 			var $para = $(entities.activeParas[j]);
@@ -1680,10 +1671,10 @@ function detectCollisions() {
 					break;	// Don't test the other paras against this bullet right now
 				}
 			}
-		}	
+		}
 
 		// Test against planes only when bullet is in the plane zone:
-		if (y < 85) {	
+		if (y < 85) {
 			for (var k in entities.activePlanes) {							// 5 planes max
 				var $plane = $(entities.activePlanes[k]);
 				var a = $plane.position().left;
@@ -1704,25 +1695,25 @@ function detectCollisions() {
 					 	player.gun.ammo += $plane.data("ammoBonus");			// Gain its ammo bonus
 						console.log($plane.attr("id")+" was hit by "+$bullet.attr("id")+"! ("+levelStats.planeKills+"k)");
 						// CODE STOPS AROUND HERE IN OPERA
-						
+
 						// Combo test:
 						var hid = $bullet.data("bid");							// hitID
 						var comboSize = testComboChain(hid);					// Test the hitID for combos
 						if (comboSize > 0) {showCombo(x,y, comboSize);console.log("COMBOOOO! ("+comboSize+")")};
-						if ($bullet.data("hits") > 0) showCombo(x,y, $bullet.data("hits"));	
+						if ($bullet.data("hits") > 0) showCombo(x,y, $bullet.data("hits"));
 
 						deregisterBullet($bullet);
 						$bullet.remove();				// Disappear the bullet
-	
-						break;		// Break out of this bullet's detection cycle if a plane was hit				
+
+						break;		// Break out of this bullet's detection cycle if a plane was hit
 					}
 				}
 			}
 		}
-	}	
-}		
+	}
+}
 
-function cleanup() {					// Remove old (frozen?) objects from the screen - bullets, planes, paras(?)
+function cleanup() {	// Remove old (frozen?) objects from the screen - bullets, planes, paras(?)
 	for (var i in entities.activeBullets) {				// Problem: the frozen bullets are no longer registered in this array
 		var $bullet = entities.activeBullets[i];
 		if (entities.bid - $bullet.data("bid") > 12) {
@@ -1755,25 +1746,25 @@ function cleanup() {					// Remove old (frozen?) objects from the screen - bulle
 $(document).keydown(function(e) {			// keydown is Safari-compatible; keypress allows holding a key to send continuous events
 
 	if (game.state == 'running') {		// GAME KEYS - DISABLED WHEN PAUSED, or in MENU, INTRO, ETC
-		
+
 		if (!e.shiftKey && e.keyCode==37 && player.gun.angle >= 7.5) {	// press left arrow
 			updateGunAngle(-7.5);
 		}
 		if (!e.shiftKey && e.keyCode==39 && player.gun.angle <= 172.5) {	// press right arrow
-			updateGunAngle(+7.5);					
+			updateGunAngle(+7.5);
 		}
 		if (e.shiftKey && e.keyCode==37 && player.gun.angle >= 15) {	// press SHIFT + left arrow
 			updateGunAngle(-15);
 		}
 		if (e.shiftKey && e.keyCode==39 && player.gun.angle <= 165) {	// press SHIFT + right arrow
-			updateGunAngle(+15);					
-		}	
+			updateGunAngle(+15);
+		}
 		if (e.keyCode==32 && player.gun.ammo > 0) {			// press 'space'
 			newBullet();									// fire gun
 		}
 		if (e.keyCode == 90 && player.grenades > 0) {		// press 'z'
 			grenade('left');								// grenade L
-		}	
+		}
 		if (e.keyCode == 88 && player.grenades > 0) {		// press 'x'
 			grenade('right');								// grenade R
 		}
@@ -1781,7 +1772,7 @@ $(document).keydown(function(e) {			// keydown is Safari-compatible; keypress al
 			gameOver(4);
 		}
 	}
-		
+
 	if (e.keyCode==80) {									// press 'p'
 		if (game.state == 'running') pause();				// pause/unpause
 		else if (game.state == 'paused') unpause();
@@ -1789,21 +1780,21 @@ $(document).keydown(function(e) {			// keydown is Safari-compatible; keypress al
 
 	// Temporary keys (aka CHEATS!)
 	if (e.keyCode == 68) {									// press 'd'
-		driveBy();			
+		driveBy();
 	}
 	if (e.keyCode == 75) {									// press 'k'
 		levelStats.planeKills += 13;						// gain 13 kills
 	}
 	if (e.keyCode == 65) {									// press 'a'
 		player.gun.ammo += 40;								// extra bullets
-	}		
+	}
 	if (e.keyCode == 71) {									// press 'g'
 		player.grenades += 1;								// gain 1 grenade
 		setGrenades();
-	}		
+	}
 	if (e.keyCode == 77) {									// press 'm'
 		player.scores.spendableScore += 1000000;			// gain 1000000 points
-	}		
+	}
 	$('#keypress').html(e.keyCode);		// Show onscreen
 });
 
