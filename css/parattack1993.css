@@ -1,0 +1,332 @@
+@import "parattack_basics.css";
+
+
+#ground {
+	position:absolute;
+	top:570px;
+	width:800px;
+	height:14px;
+	background:black url(../img/sprites2.png) repeat-x;
+	background-position: 0 -68px;
+	z-index:0;
+}
+
+#lives {position:absolute; bottom:2px; right: 2px; z-index:9}
+#lives .heart {position:relative; display:inline-block; width:14px; height:12px; margin: 0 2px; background:url(../img/sprites2.png); background-position:0 -54px}
+
+/************/
+/* OVERLAYS */
+/************/
+#scorestats {position:relative;}
+
+#scorestats .scoreplane {
+	position: relative;
+	width:48px;
+	text-align:right;
+	background: transparent url(../img/sprites.png) top left no-repeat;
+	float:left;
+	margin: 10px 0 10px 20px;
+	top:0;
+}
+
+#scorestats .scoreplane.blimp {background-position:0 -104px; height:14px;}
+#scorestats .scoreplane.apache {background-position:0 -88px; height:15px;}
+#scorestats .scoreplane.cobra {background-position:0 -62px; height:20px;}
+#scorestats .scoreplane.hind {background-position:0 -44px; height:15px;}
+#scorestats .scoreplane.messerschmitt {background-position:0 -28px; height:14px;}
+#scorestats .scoreplane.mig {background-position:0 -12px; height:14px;}
+#scorestats .scoreplane.tomcat {background-position:0 0; height:10px;}
+#scorestats .scoreplane.para {background-position: 0 -165px; height:20px; width:20px;}
+
+#scorestats p.total {
+	float:left;
+	margin:10px;
+}
+
+#shop h5 {
+	text-align:center;
+	color: white;
+}
+#shop p {
+	line-height:1.6em;
+	margin:8px;
+	display:inline-block;
+	border: 1px dashed #ccc;
+	padding:8px;
+}
+#shop p span {
+	color: yellow;
+	font-weight:bold;
+}
+
+#shop p .shopitem {
+	display:none;
+}
+
+/******************/
+/* INTRO AIRCRAFT */
+/******************/
+#introplane {
+	width:250px;
+	height:42px;
+	position:absolute;
+	top:260px;
+	left:800px;	
+	background: transparent url(../img/sprites2.png) no-repeat;	
+}
+
+#introplane span {
+	height:16px;
+	width:16px;
+	position:relative;
+	display:block;
+	margin: 20px 0 0 228px;
+}
+
+.level0 {background: transparent url(../img/sprites2.png) no-repeat; background-position: -72px -46px;}
+.level1 {background: transparent url(../img/sprites2.png) no-repeat; background-position: -88px -46px;}
+.level2 {background: transparent url(../img/sprites2.png) no-repeat; background-position: -104px -46px;}
+.level3 {background: transparent url(../img/sprites2.png) no-repeat; background-position: -120px -46px;}
+.level4 {background: transparent url(../img/sprites2.png) no-repeat; background-position: -136px -46px;}
+.level5 {background: transparent url(../img/sprites2.png) no-repeat; background-position: -152px -46px;}
+.level6 {background: transparent url(../img/sprites2.png) no-repeat; background-position: -168px -46px;}
+.level7 {background: transparent url(../img/sprites2.png) no-repeat; background-position: -184px -46px;}
+.level8 {background: transparent url(../img/sprites2.png) no-repeat; background-position: -200px -46px;}
+.level9 {background: transparent url(../img/sprites2.png) no-repeat; background-position: -216px -46px;}
+.levelq {background: transparent url(../img/sprites2.png) no-repeat; background-position: -232px -46px;}
+
+/******************/
+/* ENEMY AIRCRAFT */
+/******************/
+
+.plane {
+	position:absolute;
+	width:48px;
+	background: transparent url(../img/sprites.png) no-repeat;
+	z-index:1;	
+}
+.blimp {
+	top: 30px;		/* Flight altitude */
+	height: 14px;
+}
+.apache {
+	top:50px;
+	height: 18px;
+}
+.cobra {
+	top:40px;
+	height: 20px;
+}
+.hind {
+	top:70px;
+	height: 16px;
+}
+.messerschmitt {
+	top:60px;
+	height: 14px;
+}
+.mig {
+	top:20px;
+	height: 14px;
+}
+.tomcat {
+	top:10px;
+	height: 10px;
+}
+.blimp.ltr {background-position:0 -104px;}
+.apache.ltr {background-position:0 -84px;}
+.cobra.ltr {background-position:0 -62px;}
+.hind.ltr {background-position:0 -44px;}
+.messerschmitt.ltr {background-position:0 -28px;}
+.mig.ltr {background-position:0 -12px;}
+.tomcat.ltr {background-position:0 0;}
+
+.blimp.rtl {background-position:-50px -104px;}
+.apache.rtl {background-position:-50px -84px;}
+.cobra.rtl {background-position:-50px -62px;}
+.hind.rtl {background-position:-50px -44px;}
+.messerschmitt.rtl {background-position:-50px -28px;}
+.mig.rtl {background-position:-50px -12px;}
+.tomcat.rtl {background-position:-50px 0px;}
+
+.rtl {left:752px;}
+.ltr {left:0;}
+
+.exploding {position:absolute; width:48px; background: transparent url(../img/sprites.png) no-repeat;}
+.exploding.fr1 {background-position: 0 -120px; height:22px;}
+.exploding.fr2 {background-position: -50px -120px; height:22px;}
+.exploding.fr3 {display:none;}
+.exploding.fr4 {display:none;}
+.exploding.fr5 {display:none;}
+.exploding.fr6 {display:none;}
+
+.messerschmitt.diving.ltr {background-position:-104px 0; width:34px; height:40px}
+.messerschmitt.diving.rtl {background-position:-140px 0; width:34px; height:40px}
+
+.combo {
+	position:absolute;
+	height:19px;
+	width:27px;
+	background: transparent url(../img/sprites.png) no-repeat;
+	z-index:3;	
+}
+
+.combo.p125 {background-position: -152px -180px;}
+.combo.p250 {background-position: -152px -200px;}
+.combo.p500 {background-position: -152px -220px;}
+.combo.p750 {background-position: -152px -240px;}
+
+/*********/
+/* PARAS */
+/*********/
+
+.para {
+	position:absolute;
+	width: 20px;
+	height: 20px;
+	background: transparent url(../img/sprites.png) no-repeat;
+	z-index:1;
+}
+.normal {background-position: 0 -165px;}
+.alt {background-position: -22px -165px;} /* 2-frame animation */
+
+.shot1 {background-position: -44px -165px;}
+.shot2 {background-position: -66px -165px;} /* 2-frame animation */
+
+.ground {
+	height: 16px;
+	width:12px;
+}
+
+.left.step1 {background-position: 0 -190px;}
+.left.step2 {background-position: -14px -190px;}
+.right.step1 {background-position: -28px -190px;}
+.right.step2 {background-position: -42px -190px;}
+
+/**********/
+/* PLAYER */
+/**********/
+
+.bullet {
+	position:absolute;
+	top: 526px;
+	left:400px;
+	width: 2px;
+	height: 2px;
+	background: white;
+	z-index:1;
+}
+
+#gun {
+	position:absolute;
+	bottom:70px;
+	left:382px;
+	width: 36px;
+	height: 20px;
+	z-index:2;
+}
+
+#gun[class^=angle] {background: transparent url(../img/sprites.png) no-repeat;}
+
+#gun.angle0 {background-position: -72px -202px;}
+#gun.angle15 {background-position: -104px -240px;}
+#gun.angle30 {background-position: -104px -220px;}
+#gun.angle45 {background-position: -104px -200px;}
+#gun.angle60 {background-position: -104px -180px;}
+#gun.angle75 {background-position: -104px -160px;}
+#gun.angle90 {background-position: -104px -140px;}
+#gun.angle105 {background-position: -104px -120px;}
+#gun.angle120 {background-position: -104px -100px;}
+#gun.angle135 {background-position: -104px -80px;}
+#gun.angle150 {background-position: -104px -60px;}
+#gun.angle165 {background-position: -104px -40px;}
+#gun.angle180 {background-position: -72px -222px;}
+
+#bunker {
+	position:absolute;
+	bottom:18px;
+	left: 364px;
+	width:72px;
+	height:52px;
+	background: transparent url(../img/sprites.png) no-repeat;
+	background-position: 0 -208px;
+	z-index:2;
+}
+
+#ammo {
+	position:absolute;
+	bottom: 2px;
+	left: 375px;
+	color: #ddd;
+	font: bold 18px Courier, sans-serif;
+	line-height:1em;
+	letter-spacing: 0.1em;
+	background: none;
+	z-index:3;
+}
+
+#ammo.low {
+	color: red;
+}
+
+#grenadestock {
+	position:absolute;
+	bottom: 56px;
+	left: 370px;
+	width:60px;
+	height: 12px;
+	z-index:3;
+}
+
+#grenadestock .gr {
+	position:relative;
+	height: 8px;
+	width:8px;
+	background: transparent url(../img/sprites.png) no-repeat;
+	background-position: -80px -194px;	
+	float:left;
+	margin:2px;
+}
+
+.grenade {
+	position:absolute;
+	height: 8px;
+	width:8px;
+	background: transparent url(../img/sprites.png) no-repeat;
+	background-position: -80px -194px;
+	bottom: 70px;
+	left:400px;
+	z-index:1;
+}
+
+#car {
+	position:absolute;
+	width:38px;
+	height:18px;
+	background: transparent url(../img/sprites.png) no-repeat;
+	background-position: 0 -145px;	
+	left:0;
+	bottom: 18px;
+	z-index: 4;
+}
+
+#killCount {
+	background:black;
+	position:absolute;
+	top: 582px;
+	left:12px;
+	height:12px;
+	width:800px;
+	z-index:9;
+	border-top: 1px solid #666;
+	padding-top:2px;
+}
+
+#killCount .kill {
+	position: relative;
+	height: 12px;
+	width: 18px;
+	background: transparent url(../img/sprites.png) no-repeat;
+	background-position: -60px -194px;
+	float:left;
+}

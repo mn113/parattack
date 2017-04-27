@@ -1,0 +1,245 @@
+/*******************/
+/* PARATACK BASICS */
+/*******************/
+
+
+/**************/
+/* OUTER HTML */
+/**************/
+body {
+	margin:0;
+	padding:0;
+	background:grey url(../img/camo.jpg) repeat;
+}
+
+img#title {
+	position:absolute;
+	top:0;
+	left:0;
+	margin:0;
+	padding:0;
+	width:800px;
+}
+
+p.browserMsg {
+	background:black;
+	padding:10px;
+	color:white;
+	font: bold 16px Trebuchet, sans-serif;
+	line-height:1.4em;
+}
+
+a, a:hover, a:active {
+  outline: 0;
+  text-decoration:none;
+}
+
+
+/*************/
+/* GAME AREA */
+/*************/
+#gamefield {
+	margin: 20px;
+	position:relative;
+	width:800px;
+	min-height:600px;
+	background:black;
+	border: 4px solid #666;
+	z-index: 0;
+	overflow: hidden;
+}
+
+#gamefield * {}
+
+#tooltip {
+	display:none;
+	position:absolute;
+	width:150px;
+	padding:10px;
+	border: 2px solid red;
+	background: white;
+	font: bold 12px Courier, sans-serif;
+	font-size:12px;
+	text-align:center;
+	z-index:11;
+	opacity:0.6;
+	-moz-opacity:0.6;
+	-khtml-opacity:0.6;													/* Safari 1.x, Konq */
+	-ms-filter:"progid:DXImageTransform.Microsoft.Alpha(Opacity=60)"	/* IE8 */
+	filter: alpha(opacity=60); 											/* IE7 */
+}
+
+/************/
+/* OVERLAYS */
+/************/
+
+#overlay {
+	display:none;
+	top:-600px;
+}
+
+#menu, #rules, #paused, #victory, #gameover, #shop, #score {
+	display:none;
+}
+
+.overlay {
+	width:600px;		/* Careful with size/padding... */
+	height:500px;
+	background: #00c;
+	position:absolute;
+	opacity:0.7;
+	-moz-opacity:0.7;
+	opacity: 0.7; // all modern browsers (this is CSS3)  
+	-ms-filter: "progid:DXImageTransform.Microsoft.Alpha(Opacity=70)"; // IE 8  
+	filter: alpha(opacity=70); // IE 5-7  	
+	z-index:10;
+	padding:50px 100px;
+}
+
+.overlay * {
+	font: bold 12px Courier, sans-serif;
+	font-size:12px;
+	color: #ddd;
+	position:relative;
+}
+
+.overlay h2 {
+	font: bold 16px Courier, sans-serif;
+	font-size:16px;
+	text-align:center;
+	color: yellow;
+}
+.overlay h3 {
+	font: bold 14px Courier, sans-serif;
+	font-size:14px;
+	text-decoration:underline;
+	margin-top:26px;
+}
+.overlay h4 {
+	font: bold 13px Courier, sans-serif;
+	font-size:13px;
+	text-align:center;
+	color: yellow;
+}
+
+.overlay .actions {
+	margin: 30px 0;
+	text-align:center;
+}
+.overlay a.button {
+	color: yellow;
+	text-decoration:none;
+	text-align:center;
+	display: inline-block;
+	padding:8px;
+	margin:8px;
+	border: 1px solid yellow;
+}
+a.button:hover {
+	background:white;
+	color:#00c;
+}
+
+a.option {
+	color: #ccc;
+	text-decoration:none;
+	font-weight:normal;
+	border:0;
+}
+
+a.option.selected, a.option:hover  {
+	color:yellow;
+	font-weight:bold;
+}
+
+a.option.disabled {
+	color: #668;
+	cursor: default;
+}
+a.option.disabled:hover {
+	color: #668;
+	cursor: default;
+	font-weight:normal;
+}
+
+
+#menu p, #menu dl {margin-left: 20px;}
+#menu input {display: inline;}
+#menu dt, #menu dd {display: inline;}
+#menu dt {}
+#menu dd {}
+
+.flasherror {color:red; font-size:0.8em}
+
+
+/*****************/
+/* VOLUME WIDGET */
+/*****************/
+#volumewidget {
+	position: absolute;
+	bottom:0;
+	left:0;
+	height:11px;
+	width:11px;
+	background: #333;
+	overflow:hidden;
+	padding:3px;
+	display:none;
+	z-index:9;
+}
+
+#volumewidget a, #volumewidget span {
+	font: bold 12px Arial, sans-serif;
+	color:white;
+	display: inline-block;
+}
+
+#vol_mute {
+	width:16px;	/* variable */
+	height:16px;
+	overflow:hidden;
+	position: absolute;
+	bottom:0;
+	left:0;	
+}
+
+.muted {background: url(../img/volume.png) -16px 0 no-repeat}
+.unmuted {background: url(../img/volume.png) 0 0 no-repeat}
+
+#vol_down {}
+#vol_up {}
+
+
+/****************/
+/* LE DEBUGGING */
+/****************/
+#debug {
+	position:absolute;
+	bottom: 50px;
+	right: 20px;
+	border: 1px solid yellow;
+	color: yellow;
+	font: bold 12px Courier, sans-serif;
+	background:none;
+	padding:1em;
+	display:none;
+}
+
+#debug p {
+	position: relative;
+	background:none;
+}
+
+#keypress {
+	color:white;
+}
+
+p[id^=active] {
+	color: white;
+	font: bold 14px Courier, sans-serif;
+	min-height:20px;
+}
+
+#debug2 {
+	display:none;
+}

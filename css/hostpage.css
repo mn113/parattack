@@ -1,0 +1,109 @@
+body {
+	color: #eee;
+	font: normal 1em "Trebuchet MS", Arial, sans-serif; 
+}
+
+#wrap {
+	width: 890px;
+	margin: 0 auto;
+}
+
+ul.tabs {
+	margin: 50px 0 0;
+	padding: 0;
+	float: left;
+	list-style: none;
+	height: 32px; /*--Set height of tabs--*/
+	border-bottom: 1px solid #999;
+	border-left: 1px solid #999;
+}
+
+ul.tabs li {
+	float: left;
+	margin: 0;
+	padding: 0;
+	height: 31px; /*--Subtract 1px from the height of the unordered list--*/
+	line-height: 31px; /*--Vertically aligns the text within the tab--*/
+	border: 1px solid #666;
+	border-left: none;
+	margin-bottom: -1px; /*--Pull the list item down 1px--*/
+	overflow: hidden;
+	position: relative;
+	background: #e0e0e0;
+}
+
+ul.tabs li a {
+	text-decoration: none;
+	color: #000;
+	display: block;
+	font: bold 16px "Trebuchet MS";
+	padding: 6px 20px;
+	border: 1px solid #fff; /*--Gives the bevel look with a 1px white border inside the list item--*/
+	outline: none;
+}
+
+ul.tabs li a:hover {
+	background: #9f0;
+}
+
+ul.tabs li.active  { /*--Makes sure that the active tab does not listen to the hover properties--*/
+	background: #fc0;
+	border-bottom: 1px solid #fff; /*--Makes the active tab look like it's connected with its content--*/
+}
+
+.tab_container {
+	border: 2px solid #666;
+	border-top: none;
+	overflow: hidden;
+	clear: both;
+	background: url(../img/1x1_black_70pc.png) repeat;
+	min-height:400px;
+}
+
+.tab_content {
+	padding: 20px;
+	font-size: 1.2em;
+}
+
+table {
+	width:80%;
+	margin: 0 auto;
+}
+
+thead {border-bottom: 2px solid #eee;}
+
+th {
+	text-align: left;
+	font-weight: bold;
+	color: #eee;
+}
+
+th, td {
+	padding: 3px;
+	margin:0;
+	border: 0;
+}
+
+dl {
+	line-height: 1.4em;
+	font-size: 0.8em;
+}
+
+dt{
+	font-style: italic;
+	xfont-weight: bold;
+	margin-bottom: 0.4em;
+	color: #fc0;
+}
+
+dd {
+	margin-bottom: 1.2em;
+}
+
+a {color: #fc0;}
+a:hover {color: #9f0;}
+a:visited {color: #c82;}
+
+p {font-size: 0.8em;}
+
+h2 {color: #fc0;}
