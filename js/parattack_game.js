@@ -14,37 +14,35 @@ var game = {	// Holds misc vars
 	lastOverlay: '',
 	statsShown: false,
 	level: 1,
-	params: {},
+	params: {
+		paraSpeed:17500,
+		bulletSpeed:0.25,
+		planeTypes:['blimp','cobra','apache','hind','messerschmitt','mig','tomcat'],
+		planeSpeeds:[15000,12000,10000,9000,8000,7000,5000],
+		extraBulletsPerKill:[4,6,7,8,10,13,14,3],
+		killsNeededPerLevel:[25,25,30,30,35,35,40,666],		// Level 8 continues until death
+		maxPlanesPerLevel:[2,2,3,3,4,4,5,5],
+		maxParasPerLevel:[1,2,2,3,3,4,4,5],
+		maxBullets:8,
+		levelIntensities:[0.3, 0.35, 0.4, 0.45, 0.5, 0.55, 0.6, 0.666],
+		comboPoints:[125,250,500,750],
+		planeQuotas: {
+			level1:[.30,.25,.20,.15,.05,.05,.00],			// level 1: 100%
+			level2:[.27,.23,.20,.16,.07,.05,.02],			// level 2: 100%
+			level3:[.24,.21,.19,.17,.09,.06,.04],			// level 3: 100%
+			level4:[.21,.19,.19,.18,.11,.07,.05],			// level 4: 100%
+			level5:[.17,.17,.18,.20,.13,.08,.07],			// level 5: 100%
+			level6:[.14,.15,.17,.21,.15,.10,.08],			// level 6: 100%
+			level7:[.08,.13,.16,.23,.17,.12,.09],			// level 7: 100%
+			level8:[.05,.10,.15,.25,.20,.15,.10]			// level 8: 100%
+		},
+		life_thr: 4000,
+		nade_thr: 2500
+	},
 	entities: {},
 	player: {},
 	levelStats: {}
-}
-
-var gameParams = {		// Game constants only
-	paraSpeed:17500,
-	bulletSpeed:0.25,
-	planeTypes:['blimp','cobra','apache','hind','messerschmitt','mig','tomcat'],
-	planeSpeeds:[15000,12000,10000,9000,8000,7000,5000],
-	extraBulletsPerKill:[4,6,7,8,10,13,14,3],
-	killsNeededPerLevel:[25,25,30,30,35,35,40,666],		// Level 8 continues until death
-	maxPlanesPerLevel:[2,2,3,3,4,4,5,5],
-	maxParasPerLevel:[1,2,2,3,3,4,4,5],
-	maxBullets:8,
-	levelIntensities:[0.3, 0.35, 0.4, 0.45, 0.5, 0.55, 0.6, 0.666],
-	comboPoints:[125,250,500,750],
-	planeQuotas: {
-		level1:[.30,.25,.20,.15,.05,.05,.00],			// level 1: 100%
-		level2:[.27,.23,.20,.16,.07,.05,.02],			// level 2: 100%
-		level3:[.24,.21,.19,.17,.09,.06,.04],			// level 3: 100%
-		level4:[.21,.19,.19,.18,.11,.07,.05],			// level 4: 100%
-		level5:[.17,.17,.18,.20,.13,.08,.07],			// level 5: 100%
-		level6:[.14,.15,.17,.21,.15,.10,.08],			// level 6: 100%
-		level7:[.08,.13,.16,.23,.17,.12,.09],			// level 7: 100%
-		level8:[.05,.10,.15,.25,.20,.15,.10]			// level 8: 100%
-	},
-	life_thr: 4000,
-	nade_thr: 2500
-}
+};
 
 var entities = {	// Holds the sprite objects created and destroyed each level
 	activePlanes:[],
@@ -117,7 +115,7 @@ var levelStats = {
 			this.levelBonus = (player.levelsCompleted[game.level-1] == true) ? 500 : 0;					// gain 500 for beating the level
 			var planeScore = 0;
 			for (var i in levelStats.allKillsThisLevel) {
-				this.planeScore += levelStats.allKillsThisLevel[i]*(1+gameParams.extraBulletsPerKill[i]);
+				this.planeScore += levelStats.allKillsThisLevel[i]*(1+game.params.extraBulletsPerKill[i]);
 			}
 			this.accuScore = (!isNaN(levelStats.accuracy)) ? Math.floor(10*levelStats.accuracy) : 0;// score 0 if accuracy invalid
 			this.comboScore = levelStats.comboScore;
@@ -149,19 +147,19 @@ var levelStats = {
 
 		checkRewards: function() {
 			var tot = player.scores.cumulativeScore;	// MUST BE SEPARATE FROM SHOP SCORE
-			if (tot > gameParams.life_thr) {
+			if (tot > game.params.life_thr) {
 				player.lives++;
 				//updateLives();
 				// Show message
-				console.log('Gained an extra life for '+gameParams.life_thr+' points.')
-				gameParams.life_thr += 4000;
+				console.log('Gained an extra life for '+game.params.life_thr+' points.')
+				game.params.life_thr += 4000;
 			}
-			if (tot > gameParams.nade_thr) {
+			if (tot > game.params.nade_thr) {
 				player.grenades++;
 				//setGrenades();
 				// Show message
-				console.log('Gained a grenade for '+gameParams.nade_thr+' points.')
-				gameParams.nade_thr += 2500;
+				console.log('Gained a grenade for '+game.params.nade_thr+' points.')
+				game.params.nade_thr += 2500;
 			}
 		}
 	}
@@ -338,8 +336,8 @@ function showStats(overlay) {
 	statsHtml += '<p>Planes killed: '+levelStats.planeKills+'</p>';
 	statsHtml += '<p>Paras killed: '+levelStats.allKillsThisLevel[7]+'</p>';
 	// Create planes matrix:
-	for (i=0; i<gameParams.planeTypes.length; i++) {
-		statsHtml += '<div class="scoreplane '+gameParams.planeTypes[i]+'"></div>'+
+	for (i=0; i<game.params.planeTypes.length; i++) {
+		statsHtml += '<div class="scoreplane '+game.params.planeTypes[i]+'"></div>'+
 					 '<p class="total">x'+levelStats.allKillsThisLevel[i]+'</p>';
 		if (i==3) statsHtml += '<br style="clear:both; margin-bottom:40px;"/>';
 	}
@@ -528,7 +526,7 @@ var shop = {
 			case 'bulletAccelerator':
 				$(this).parent.remove();	// Remove the entire line so it can't be bought again
 				$('#shop h5').html('You bought the Bullet Accelerator. I hope it helps!');
-				gameParams.bulletSpeed += 0.02;
+				game.params.bulletSpeed += 0.02;
 				player.gun.bulletAccLevel += 1;
 				break;
 			case 'hamburger':
@@ -692,7 +690,7 @@ function startLevel(n) {
 
 	// Set level parameters:
 	game.level = n;
-	levelStats.killsNeeded = gameParams.killsNeededPerLevel[game.level-1];
+	levelStats.killsNeeded = game.params.killsNeededPerLevel[game.level-1];
 	levelStats.hits = 0;
 	levelStats.planeKills = 0;
 	levelStats.allKillsThisLevel = [0,0,0,0,0,0,0,0] ;	// Clear kill counter for the 8 enemy types
@@ -935,7 +933,7 @@ function assessSkill() {
 	else {											// If defeated,
 		var levelToTweak = game.level-1				// Tweak this level
 	}
-	gameParams.levelIntensities[levelToTweak] *= (1+playerSkill);	// Tweak intensity (difficulty) for the level to be played
+	game.params.levelIntensities[levelToTweak] *= (1+playerSkill);	// Tweak intensity (difficulty) for the level to be played
 	return playerSkill;
 }
 
@@ -1015,7 +1013,7 @@ function explodeGun() {
 /*! BULLET FUNCTIONS */
 /*********************/
 function newBullet() {
-	if (entities.activeBullets.length < gameParams.maxBullets) {	// room for another bullet?
+	if (entities.activeBullets.length < game.params.maxBullets) {	// room for another bullet?
 		var bulletID = 'bullet' + entities.bid;						// e.g. "bullet33"
 
 		var $bullet = $('<div id="'+ bulletID +'"></div>')	// Create bullet element
@@ -1027,7 +1025,7 @@ function newBullet() {
 
 		// Shoot the bullet:
 		var XTarget = findTarget(player.gun.angle);
-		var bulletTime = (548/Math.abs(Math.cos((player.gun.angle-90)*Math.PI/180)))/gameParams.bulletSpeed;	// Bullet animation time = distance over speed
+		var bulletTime = (548/Math.abs(Math.cos((player.gun.angle-90)*Math.PI/180)))/game.params.bulletSpeed;	// Bullet animation time = distance over speed
 
 		$bullet.data("XTarget", XTarget)												// Attach its target info
 			   .data("bulletTime", bulletTime)											// Attach its total travel time
@@ -1070,7 +1068,7 @@ function resumeBullets() {					// Restart bullets on unpause
 
 function showCombo(x,y,hits) {
 	$('.combo').remove();								// Clear all previous combo icons
-	var points = gameParams.comboPoints[(hits-1)%4];	// 125, 250, 500 or 750
+	var points = game.params.comboPoints[(hits-1)%4];	// 125, 250, 500 or 750
 	var $comboHtml = $('<div class="combo"></div>');
 	$comboHtml.addClass('p'+points)
 			  .prependTo('#gamefield')
@@ -1195,9 +1193,9 @@ function driveBy() {
 /*! PLANE FUNCTIONS */
 /********************/
 function newPlane(type) {
-	if (entities.activePlanes.length < gameParams.maxPlanesPerLevel[game.level-1]) {		// room for another plane?
-		var planeType = gameParams.planeTypes[type];
-		var planeSpeed = gameParams.planeSpeeds[type];
+	if (entities.activePlanes.length < game.params.maxPlanesPerLevel[game.level-1]) {		// room for another plane?
+		var planeType = game.params.planeTypes[type];
+		var planeSpeed = game.params.planeSpeeds[type];
 		var planeID = planeType + entities.pid;								// Make a unique id e.g. "blimp12"
 
 		var $plane = $('<div id="'+planeID+'"></div>')						// Create a new plane element
@@ -1207,7 +1205,7 @@ function newPlane(type) {
 			.data("speed", planeSpeed)										// e.g. 4000
 			.data("type", type)												// e.g. 0
 			.data("planeType", planeType)									// e.g. "blimp"
-			.data("ammoBonus", gameParams.extraBulletsPerKill[type])		// e.g. 4
+			.data("ammoBonus", game.params.extraBulletsPerKill[type])		// e.g. 4
 			.prependTo('#gamefield');										// Add it to the document
 		if (Math.random() > 0.5) {											// Flip it 50% of the time
 			$plane.addClass('rtl')
@@ -1363,7 +1361,7 @@ function resumePlanes() {
 /*! PARA FUNCTIONS */
 /*******************/
 function newPara($plane) {
-	if (entities.activeParas.length < gameParams.maxParasPerLevel[game.level-1]) {				// room for another para?
+	if (entities.activeParas.length < game.params.maxParasPerLevel[game.level-1]) {				// room for another para?
 		var paraID = 'para' + entities.mid;										// Make a unique id e.g. "para1"
 
 		var planeX = $plane.position().left;	// Get plane's coords
@@ -1393,7 +1391,7 @@ function newPara($plane) {
 			$para.animate({"left":"+=50px", "top":"+=50px"}, 3000);
 		}
 
-		$para.animate({"top":"564px"}, gameParams.paraSpeed, "linear", function() {	// Drop him
+		$para.animate({"top":"564px"}, game.params.paraSpeed, "linear", function() {	// Drop him
 			paraLand($para);
 		});
 	}
@@ -1445,7 +1443,7 @@ function resumeParas() {
 	for (var i in entities.activeParas) {
 		var $para = $(entities.activeParas[i]);				// Get para from DOM
 		var y = $para.position().top;						// Get his y-coord
-		var newSpeed = gameParams.paraSpeed * (564-y)/564;	// Calculate new drop time
+		var newSpeed = game.params.paraSpeed * (564-y)/564;	// Calculate new drop time
 
 		$para.animate({"top":"564px"}, newSpeed, 'linear', function() {
 			if ($para.position().top == 564) paraLand($para);		// Now he can land
@@ -1601,12 +1599,12 @@ function paraBunkerStorm(side) {
 function planeGenerator() {		// Generate planes randomly, based on quotas & level
 
 	var r = Math.random();
-	if (r < gameParams.levelIntensities[game.level-1]) {	// 30% to 66% chance we make a new plane this time
+	if (r < game.params.levelIntensities[game.level-1]) {	// 30% to 66% chance we make a new plane this time
 		var rn = Math.random();
 		var thr = 0;								// Threshold starts at 0
 
-		for (var i in gameParams.planeQuotas['level'+game.level]) {	// For each plane's quota:
-			thr += gameParams.planeQuotas['level'+game.level][i];	// Set threshold for that plane
+		for (var i in game.params.planeQuotas['level'+game.level]) {	// For each plane's quota:
+			thr += game.params.planeQuotas['level'+game.level][i];	// Set threshold for that plane
 			if (rn < thr) {										// Test it
 				newPlane(i);									// If true, create that plane
 				break;											// And stop testing
@@ -1618,7 +1616,7 @@ function planeGenerator() {		// Generate planes randomly, based on quotas & leve
 function paraGenerator() {		// Generate paras randomly from active planes
 
 	var r = Math.random();
-	if (r < gameParams.levelIntensities[game.level-1] && entities.activePlanes.length > 0) {		// 30% to 66% chance we release a new para now
+	if (r < game.params.levelIntensities[game.level-1] && entities.activePlanes.length > 0) {		// 30% to 66% chance we release a new para now
 		var $plane = entities.activePlanes[Math.floor((entities.activePlanes.length)*Math.random())];	// Select an active plane at random
 		newPara($plane);																// Bombs away!
 	}
@@ -1653,7 +1651,7 @@ function detectCollisions() {
 					console.log($para.attr("id")+" was hit by "+$bullet.attr("id")+"!");
 					levelStats.hits++;
 				 	levelStats.allKillsThisLevel[7]++;						// Count 1 para kill
-					player.gun.ammo += gameParams.extraBulletsPerKill[7];	// Gain his ammo bonus
+					player.gun.ammo += game.params.extraBulletsPerKill[7];	// Gain his ammo bonus
 
 					// Combo test:
 					if ($bullet.data("hits") > 0) showCombo(x,y, $bullet.data("hits"));	// can be 1,2 or 3 depending on hits
@@ -1714,14 +1712,14 @@ function cleanup() {	// Remove old (frozen?) objects from the screen - bullets, 
 	}
 	for (var i in entities.activePlanes) {
 		var $plane = entities.activePlanes[i];
-		if (entities.pid - $plane.data("pid") > gameParams.maxPlanesPerLevel[game.level-1] + 2) {	// could give premature removal of slow planes?
+		if (entities.pid - $plane.data("pid") > game.params.maxPlanesPerLevel[game.level-1] + 2) {	// could give premature removal of slow planes?
 			deregisterPlane($plane);
 			$plane.remove();
 		}
 	}
 	for (var i in entities.activeParas) {
 		var $para = entities.activeParas[i];
-		if (entities.mid - $para.data("mid") > gameParams.maxParasPerLevel[game.level-1] + 2) {
+		if (entities.mid - $para.data("mid") > game.params.maxParasPerLevel[game.level-1] + 2) {
 			deregisterPara($para);
 			$para.remove();
 		}
