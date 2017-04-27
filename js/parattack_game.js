@@ -1,19 +1,6 @@
 /***************/
 /*! GAME SETUP */
 /***************/
-var globalSels = {		// prepare jQuery selectors for static elements -- NOT WORKING
-	gamefield : 		$('#gamefield'),
-	overlays : 			$('div.overlay'),
-	gunAngleDisplay : 	$('#gunAngle'),
-	keypress : 			$('#keypress'),
-	ammo : 				$('#ammo'),
-	grenadeStock : 		$('#grenadeStock'),
-	killCount : 		$('#killCount'),
-	killIcon : 			$('<div class="kill"></div>')	// string
-}
-
-//var level = 1;
-
 /* game states:
 1. Menu - used only before game has been started
 2. Intro - used for 5 seconds at start of each level
@@ -30,8 +17,7 @@ var game = {	// Holds misc vars
 	params: {},
 	entities: {},
 	player: {},
-	levelStats: {},
-	globalSels: {}
+	levelStats: {}
 }
 
 var gameParams = {		// Game constants only
