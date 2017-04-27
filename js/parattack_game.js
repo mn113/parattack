@@ -12,7 +12,7 @@ var globalSels = {		// prepare jQuery selectors for static elements -- NOT WORKI
 	killIcon : 			$('<div class="kill"></div>')	// string
 }
 
-var level = 1;
+//var level = 1;
 
 /* game states:
 1. Menu - used only before game has been started
@@ -25,7 +25,13 @@ var level = 1;
 var game = {	// Holds misc vars
 	state: '',
 	lastOverlay: '',
-	statsShown: false
+	statsShown: false,
+	level: 1,
+	params: {},
+	entities: {},
+	player: {},
+	levelStats: {},
+	globalSels: {}
 }
 
 var gameParams = {		// Game constants only
@@ -122,8 +128,8 @@ var levelStats = {
 		levelScore:0,
 
 		calcScore: function() {
-			this.levelBonus = (player.levelsCompleted[level-1] == true) ? 500 : 0;					// gain 500 for beating the level
-			planeScore = 0;
+			this.levelBonus = (player.levelsCompleted[game.level-1] == true) ? 500 : 0;					// gain 500 for beating the level
+			var planeScore = 0;
 			for (var i in levelStats.allKillsThisLevel) {
 				this.planeScore += levelStats.allKillsThisLevel[i]*(1+gameParams.extraBulletsPerKill[i]);
 			}
@@ -133,7 +139,7 @@ var levelStats = {
 			this.paraScore = (levelStats.landedParas == 0) ? 1500 : -25 * levelStats.landedParas;	// bonus for flawless victory
 			this.levelScore = (this.levelBonus + this.planeScore + this.accuScore + this.timeScore + this.paraScore);	// Total score for this level
 
-			player.scores.allLevelScores[level-1] = this.levelScore;								// Store it in array
+			player.scores.allLevelScores[game.level-1] = this.levelScore;								// Store it in array
 			player.scores.spendableScore += this.levelScore;										// Add latest score to cumulator
 			player.scores.cumulativeScore += this.levelScore;										// Add latest score to cumulator
 
@@ -287,7 +293,7 @@ function showOverlay(overlay, type) {
 		break;
 
 	case 'victory':
-		player.levelsCompleted[level-1] = true;
+		player.levelsCompleted[game.level-1] = true;
 		levelStats.scores.calcScore();
 		game.lastOverlay = 'victory';
 		game.state = 'between';
@@ -357,8 +363,8 @@ function showStats(overlay) {
 	$('#'+overlay+' .stats').html(statsHtml);	// Display it in the requesting overlay
 	game.statsShown = true;
 
-	var successword = (player.levelsCompleted[level-1]) ? 'completed' : 'failed';
-	console.log('Level '+level+' '+successword+'. Bullets fired: '+levelStats.bulletsFired+', Hits: '+levelStats.hits+', Shooting accuracy: '+levelStats.accuracy)+'. Skill: '+assessSkill();
+	var successword = (player.levelsCompleted[game.level-1]) ? 'completed' : 'failed';
+	console.log('Level '+game.level+' '+successword+'. Bullets fired: '+levelStats.bulletsFired+', Hits: '+levelStats.hits+', Shooting accuracy: '+levelStats.accuracy)+'. Skill: '+assessSkill();
 }
 
 
@@ -383,13 +389,13 @@ $('#overlay').click(function(e){
 			break;
 
 		case 'proceed':
-			startLevel(level+1);
+			startLevel(game.level+1);
 			break;
 
 		case 'retry':
 			player.gun.ammo = player.gun.savedAmmo; // Get our saved ammo level back (retrying level)
 			updateStats();
-			startLevel(level);
+			startLevel(game.level);
 			break;
 
 		case 'quit':
@@ -633,7 +639,6 @@ soundManager.loadSfx = function() {
 	sounds.bunkerStorm = soundManager.createSound({id: 'sfx_bunkerstorm', url: 'sm2/mp3/bugle.mp3', volume: 50});
 }
 
-
 soundManager.loadMusic = function() {
 	// define music here
 }
@@ -652,7 +657,7 @@ soundManager.setGameVolume = function(incr) {	// Normally -10 or +10
 	}
 	console.log("Game volume: "+this.gameVolume);
 	$('#volumewidget span').html(this.gameVolume);					// Update display
-//	$('#vol_mute').css("width",eval(3+(0.25*this.gameVolume)));		// Make the volume icon longer or shorter (15-28px)
+	//$('#vol_mute').css("width",eval(3+(0.25*this.gameVolume)));	// Make the volume icon longer or shorter (15-28px)
 }
 
 soundManager.gameMuteToggle = function() {
@@ -700,8 +705,8 @@ function startLevel(n) {
 	entities.resetAll();
 
 	// Set level parameters:
-	level = n;
-	levelStats.killsNeeded = gameParams.killsNeededPerLevel[level-1];
+	game.level = n;
+	levelStats.killsNeeded = gameParams.killsNeededPerLevel[game.level-1];
 	levelStats.hits = 0;
 	levelStats.planeKills = 0;
 	levelStats.allKillsThisLevel = [0,0,0,0,0,0,0,0] ;	// Clear kill counter for the 8 enemy types
@@ -709,7 +714,7 @@ function startLevel(n) {
 	levelStats.landedParas = 0;
 	levelStats.levelTime = 0;
 	levelStats.bulletsFired = 0;
-	levelStats.driveBys = (level == 8) ? 3 : 1;
+	levelStats.driveBys = (game.level == 8) ? 3 : 1;
 	//levelStats.resetAll(); 		// TBD - replaces the above block
 
 	player.gun.savedAmmo = player.gun.ammo; // Save our ammo level for retries
@@ -802,8 +807,8 @@ function gameOver(reason) {
 }
 
 function startNextLevel() {
-	level++;
-	startLevel(level);
+	game.level++;
+	startLevel(game.level);
 }
 
 
@@ -938,11 +943,11 @@ function assessSkill() {
 	playerSkill += (1.2 - (levelStats.allKillsThisLevel[7]/(levelStats.planeKills + 1)))*0.05;	// Para/plane ratio above 1.2, lose skill
 	console.log("Player's total skill: "+playerSkill);
 
-	if (player.levelsCompleted[level-1] = true) { 	// If player victorious,
-		var levelToTweak = level;					// Tweak next level
+	if (player.levelsCompleted[game.level-1] = true) { 	// If player victorious,
+		var levelToTweak = game.level;					// Tweak next level
 	}
 	else {											// If defeated,
-		var levelToTweak = level-1					// Tweak this level
+		var levelToTweak = game.level-1				// Tweak this level
 	}
 	gameParams.levelIntensities[levelToTweak] *= (1+playerSkill);	// Tweak intensity (difficulty) for the level to be played
 	return playerSkill;
@@ -1204,7 +1209,7 @@ function driveBy() {
 /*! PLANE FUNCTIONS */
 /********************/
 function newPlane(type) {
-	if (entities.activePlanes.length < gameParams.maxPlanesPerLevel[level-1]) {		// room for another plane?
+	if (entities.activePlanes.length < gameParams.maxPlanesPerLevel[game.level-1]) {		// room for another plane?
 		var planeType = gameParams.planeTypes[type];
 		var planeSpeed = gameParams.planeSpeeds[type];
 		var planeID = planeType + entities.pid;								// Make a unique id e.g. "blimp12"
@@ -1372,7 +1377,7 @@ function resumePlanes() {
 /*! PARA FUNCTIONS */
 /*******************/
 function newPara($plane) {
-	if (entities.activeParas.length < gameParams.maxParasPerLevel[level-1]) {				// room for another para?
+	if (entities.activeParas.length < gameParams.maxParasPerLevel[game.level-1]) {				// room for another para?
 		var paraID = 'para' + entities.mid;										// Make a unique id e.g. "para1"
 
 		var planeX = $plane.position().left;	// Get plane's coords
@@ -1610,12 +1615,12 @@ function paraBunkerStorm(side) {
 function planeGenerator() {		// Generate planes randomly, based on quotas & level
 
 	var r = Math.random();
-	if (r < gameParams.levelIntensities[level-1]) {	// 30% to 66% chance we make a new plane this time
+	if (r < gameParams.levelIntensities[game.level-1]) {	// 30% to 66% chance we make a new plane this time
 		var rn = Math.random();
 		var thr = 0;								// Threshold starts at 0
 
-		for (var i in gameParams.planeQuotas['level'+level]) {	// For each plane's quota:
-			thr += gameParams.planeQuotas['level'+level][i];	// Set threshold for that plane
+		for (var i in gameParams.planeQuotas['level'+game.level]) {	// For each plane's quota:
+			thr += gameParams.planeQuotas['level'+game.level][i];	// Set threshold for that plane
 			if (rn < thr) {										// Test it
 				newPlane(i);									// If true, create that plane
 				break;											// And stop testing
@@ -1627,7 +1632,7 @@ function planeGenerator() {		// Generate planes randomly, based on quotas & leve
 function paraGenerator() {		// Generate paras randomly from active planes
 
 	var r = Math.random();
-	if (r < gameParams.levelIntensities[level-1] && entities.activePlanes.length > 0) {		// 30% to 66% chance we release a new para now
+	if (r < gameParams.levelIntensities[game.level-1] && entities.activePlanes.length > 0) {		// 30% to 66% chance we release a new para now
 		var $plane = entities.activePlanes[Math.floor((entities.activePlanes.length)*Math.random())];	// Select an active plane at random
 		newPara($plane);																// Bombs away!
 	}
@@ -1723,14 +1728,14 @@ function cleanup() {	// Remove old (frozen?) objects from the screen - bullets, 
 	}
 	for (var i in entities.activePlanes) {
 		var $plane = entities.activePlanes[i];
-		if (entities.pid - $plane.data("pid") > gameParams.maxPlanesPerLevel[level-1] + 2) {	// could give premature removal of slow planes?
+		if (entities.pid - $plane.data("pid") > gameParams.maxPlanesPerLevel[game.level-1] + 2) {	// could give premature removal of slow planes?
 			deregisterPlane($plane);
 			$plane.remove();
 		}
 	}
 	for (var i in entities.activeParas) {
 		var $para = entities.activeParas[i];
-		if (entities.mid - $para.data("mid") > gameParams.maxParasPerLevel[level-1] + 2) {
+		if (entities.mid - $para.data("mid") > gameParams.maxParasPerLevel[game.level-1] + 2) {
 			deregisterPara($para);
 			$para.remove();
 		}
