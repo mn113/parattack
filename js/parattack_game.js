@@ -18,6 +18,7 @@
 		state: '',
 		lastOverlay: '',
 		statsShown: false,
+		volume: 0,
 		options: {
 			gfxEnabled: false,
 			sfxEnabled: true,
@@ -345,37 +346,33 @@
 		});
 	}
 
-	var sm2 = null;
-
 
 	/****************/
 	/*! SOUND SETUP */
 	/****************/
 	var sounds = {		// Empty container for all the sounds to be used
-		click: null,		// click.mp3
-		planes: {
-			introPlane: null,		// biplane.mp3
-			blimp: null,			// heli1.mp3
-			apache: null,			// heli1.mp3
-			cobra: null,			// heli1.mp3
-			hind: null,				// heli1.mp3
-			messerschmitt: null,	// messerschmitt64.mp3
-			mig: null,				// mig.mp3
-			tomcat: null			// tomcat.mp3
-		},
-		bullet: null,	// bullet.mp3
-		explosion: null,// boom.mp3
-		paraHit1: null,	// aiiee.mp3
-		paraHit2: null,	// augh.mp3
-		splat1: null,	// splat1.mp3
-		splat2: null,	// splat2.mp3
-		splatargh: null,	// splatargh.mp3
-		dive: null,			// stukadive1sec.mp3
+		click: {url: 'sm2/mp3/click.mp3', volume: 50},
+		introPlane: {url:'sm2/mp3/biplane.mp3', volume:50},
+		blimp: {url:'sm2/mp3/heli1.mp3', volume:50},
+		apache: {url: 'sm2/mp3/heli1.mp3', volume: 50},
+		cobra: {url: 'sm2/mp3/heli1.mp3', volume: 50},
+		hind: {url: 'sm2/mp3/heli1.mp3', volume: 50},
+		messerschmitt: {url: 'sm2/mp3/messerschmitt64.mp3', volume: 50},
+		mig: {url: 'sm2/mp3/mig.mp3', volume: 50},
+		tomcat: {url: 'sm2/mp3/tomcat.mp3', volume: 50},
+		bullet: {url: 'sm2/mp3/bullet.mp3', volume: 50},
+		explosion: {url: 'sm2/mp3/boom.mp3', volume: 50},
+		paraHit1: {url: 'sm2/mp3/aiiee.mp3', volume: 50},
+		paraHit2: {url: 'sm2/mp3/augh.mp3', volume: 50},
+		splat1: {url: 'sm2/mp3/splat1.mp3', volume: 40},
+		splat2: {url: 'sm2/mp3/splat2.mp3', volume: 40},
+		splatargh: {url: 'sm2/mp3/splatargh.mp3', volume: 40},
+		dive: {url: 'sm2/mp3/stukadive1sec.mp3', volume: 50},
 		combo1: null,
 		combo2: null,
 		grenade: null,
 		driveby: null,
-		bunkerStorm: null,	// bugle64.mp3
+		bunkerStorm: {url: 'sm2/mp3/bugle.mp3', volume: 50},	// bugle64.mp3
 		victory: null,
 		gameover: null,
 		music: {
@@ -384,6 +381,28 @@
 			3: null
 		}
 	};
+
+	function adjustGameVolume(incr) {	// Normally -10 or +10
+		// Master volume:
+		if (game.volume + incr >= -50 && game.volume + incr <= 50) {	// Stay in -+50 range
+			game.volume += incr;
+		}
+		console.log("Game volume:", game.volume);
+		$('#volumewidget span').html(game.volume);					// Update display
+		$('#vol_mute').css("width", 15+(0.2*game.volume)+"px");	// Make the volume icon longer or shorter (15-28px)
+	}
+
+	function gameMuteToggle() {
+		game.options.sfxEnabled = !game.options.sfxEnabled;		//FIXME: better to set to 0, than disable playing?
+	}
+
+	function playSound(sound) {
+		if (!game.options.sfxEnabled) return;
+		var snd = new Audio(sounds[sound].url); 	// buffers automatically when created
+		snd.volume = (game.volume + sounds[sound].volume) / 100;
+		snd.currentTime = 0;
+		snd.play();
+	}
 
 
 	/*********/
@@ -513,7 +532,7 @@
 
 	function levelIntro(n) {		// Make the biplane fly across screen with level name
 		game.state = 'intro';
-		if (game.options.sfxEnabled) sounds.introPlane.play();
+		playSound('introPlane');
 		var $biplane = $('<div id="introplane"><span class="level'+n+'"></span></div>');
 		$biplane.prependTo('#gamefield')
 				.animate({"left":"-250px"}, 5000, 'linear', function() {
@@ -536,7 +555,7 @@
 	function pause() {
 		game.levelTimer.stop();
 		$('#gamefield div').stop();		// stop everything moving
-		sm2.pauseAll();
+		//sm2.pauseAll();	//TODO: pause & resume HTML5 sounds?
 		game.state = 'paused';
 
 		// Clear generators & animators
@@ -548,7 +567,7 @@
 	}
 
 	function unpause() {
-		sm2.resumeAll();
+		//sm2.resumeAll();
 		game.state = 'running';
 
 		// Restart generators & animators & timer:
@@ -572,7 +591,7 @@
 		game.levelStats.levelTime = game.levelTimer.stop();	// Stop the stopwatch (total seconds)
 		$('#gamefield div').stop();					// Stop everything moving
 		game.state = 'between';
-		sm2.stopAll();
+		//sm2.stopAll();
 
 		// Stop the generators:
 		loops.stopAll();
@@ -795,7 +814,7 @@
 	}
 
 	function explodeGun() {
-		if (game.options.sfxEnabled) sounds.explosion.play();
+		playSound('explosion');
 		game.state = '';									// Disable key input
 		$('#gun').removeClass()
 			     .animate({"left":"-=12px"}, 1)			// Shift left to accommodate explosion sprite
@@ -832,7 +851,7 @@
 						deregisterBullet(this);
 				   });
 
-			if (game.options.sfxEnabled) sounds.bullet.play();
+			playSound('bullet');
 			game.levelStats.bulletsFired++;
 			player.gun.ammo--;
 			testAmmo();		// Check if ammo stuck on zero
@@ -907,7 +926,7 @@
 						.appendTo('#gamefield')					// Add it to document
 						.animate({"left":target,"bottom":"+=30px"}, 250, "swing", function() {				// y upwards
 			   				$(this).animate({"left":target,"bottom":"18px"}, 200, "swing", function() {		// y downwards
-								if (game.options.sfxEnabled) sounds.explosion.play();
+								playSound('explosion');
 								killGPs($nade.position().left);
 								$nade.animate({"left":"-=24px"}, 1, function() {	// shift to accommodate explosion sprite
 									explode($nade);
@@ -930,10 +949,8 @@
 				console.log($para.attr("id")+" is going home in a plastic bag.");
 				$para.remove();
 				// Play sound if hit:
-				if (game.options.sfxEnabled) {
-					if (Math.random() > 0.5) sounds.paraHit1.play();
-					else sounds.paraHit2.play();
-				}
+				if (Math.random() > 0.5) playSound('paraHit1');
+				else playSound('paraHit2');
 			}
 		}
 		rebuildGroundArrays();
@@ -1017,7 +1034,7 @@
 			game.entities.activePlanes.push($plane);									// Register "blimp12" as active
 			game.entities.pid++;
 
-			if (game.options.sfxEnabled) sounds[planeType].play();
+			playSound(planeType);
 
 			var dest = $plane.data("dest");
 			$plane.animate({"left": dest}, planeSpeed, "linear", function() {	// Start it moving
@@ -1060,7 +1077,7 @@
 			}
 		}, 100);
 
-		if (game.options.sfxEnabled) sounds.dive.play(); // Sfx
+		playSound('dive');
 
 		$plane.stop(true)	// clearQueue on
 			  .addClass('diving')				// Needs to dive from y=60 to y=542
@@ -1070,7 +1087,7 @@
 
 					//explode($plane);		// CAUSES FREEZING
 					// explode() function duplicated here:	// WASTEFUL! FIXME
-					if (game.options.sfxEnabled) sounds.explosion.play();		// BOOM!
+					playSound('explosion');		// BOOM!
 
 					$plane.stop().removeClass('rtl').removeClass('ltr').addClass('exploding').addClass('fr1');
 
@@ -1097,11 +1114,10 @@
 	}
 
 	function explodePlane($plane) {
-		if (game.options.sfxEnabled) {
-			console.log("boom");
-			//sounds[eval($plane.data("planeType"))].stop();	// Stop the sound of that plane (WHAT IF 2 FLYING?)
-			//sm2.stop(eval('sfx_'+$plane.data("planeType")));	// Stops the sound by soundid
-		}
+		console.log("boom");
+		//FIXME
+		//sounds[eval($plane.data("planeType"))].stop();	// Stop the sound of that plane (WHAT IF 2 FLYING?)
+		//sm2.stop(eval('sfx_'+$plane.data("planeType")));	// Stops the sound by soundid
 
 		$plane.stop(true);		// clearQueue enabled	// Stop it
 
@@ -1109,10 +1125,11 @@
 	}
 
 	function explode($obj) {
-		if (game.options.sfxEnabled) sounds.explosion.play();		// BOOM!
+		playSound('explosion');		// BOOM!
 
 		$obj.stop().removeClass('rtl').removeClass('ltr').removeClass('grenade').addClass('exploding').addClass('fr1');
 
+		// TODO: CSS3 animation
 		setTimeout(function() {
 			$obj.removeClass('fr1').addClass('fr2');			// Swap sprite after 120
 			setTimeout(function() {
@@ -1199,15 +1216,13 @@
 
 	function killPara($para) {
 		// Sound effect:
-		if (game.options.sfxEnabled) {
-			var n = 1 + Math.floor(5*Math.random());	// Integer 1-5
-			switch (n) {
-				case 1: sounds.paraHit1.play(); break;
-				case 2: sounds.paraHit2.play(); break;
-				case 3: sounds.splat1.play(); break;
-				case 4: sounds.splat2.play(); break;
-				case 5: sounds.splatargh.play(); break;
-			}
+		var n = 1 + Math.floor(5*Math.random());	// Integer 1-5
+		switch (n) {
+			case 1: playSound('paraHit1'); break;
+			case 2: playSound('paraHit2'); break;
+			case 3: playSound('splat1'); break;
+			case 4: playSound('splat2'); break;
+			case 5: playSound('splatargh'); break;
 		}
 
 		$para.stop(true)	// clearQueue enabled - terminates any earlier animation and guarantees his removal
@@ -1348,7 +1363,7 @@
 	function paraBunkerStorm(side) {
 		// animate paras storming the bunker
 		console.log('paras are storming your bunker on the '+side+' side!');
-		if (game.options.sfxEnabled) sounds.bunkerStorm.play();
+		playSound('bunkerStorm');
 
 		if (side === 'right') {
 			$(game.entities.bunkerParasR[0]).animate({"top":"560px","left":"440px"}, 700, 'linear', function() {
@@ -1536,16 +1551,12 @@
 			var clickedID = e.target.id;
 
 			if ($(e.target).hasClass('button')) {
-				console.log(sounds.click);
-				if (game.options.sfxEnabled) sounds.click.play();		// FIXME sounds.click is null
+				playSound('click');
 
 				switch(clickedID) {
 				case 'startgame':
 					// Process menu selections:
-					if (game.options.sfxEnabled) sm2.loadSfx();
-					if (game.options.musicEnabled) sm2.loadMusic();
 					if (game.options.gfxEnabled) swapSprites(2009);
-					if (game.options.sfxEnabled || game.options.musicEnabled) $('#volumewidget').show();
 					startLevel(1);
 					break;
 				case 'proceed':
@@ -1606,14 +1617,14 @@
 
 			if (game.state === 'running') {
 				if (clickedID === 'vol_mute') {
-					sm2.gameMuteToggle();								// Mute SM2
+					gameMuteToggle();
 					$(e.target).toggleClass('muted').toggleClass('unmuted');	// Change icon
 				}
 				else if (clickedID === 'vol_down') {
-					sm2.adjustGameVolume(-10);
+					adjustGameVolume(-10);
 				}
 				else if (clickedID === 'vol_up') {
-					sm2.adjustGameVolume(+10);
+					adjustGameVolume(+10);
 				}
 				else {
 					$('#tooltip').css("left", e.pageX)			// Position the hidden tooltip div at the mouse pointer
@@ -1651,76 +1662,6 @@
 			$(this).stop().animate({"height":"11px","width":"11px"});		// Mouseout = shrink it
 		});
 
-		setTimeout(function() {
-			sm2 = window.soundManager;
-			sm2.url = 'sm2/';
-			sm2.debugMode = false;
-			sm2.gameVolume = 50;
-
-			sm2.onload = function() {
-				// SM2 is ready to go!
-				sounds.click = sm2.createSound({id: 'sfx_click', url: 'sm2/mp3/click.mp3', volume: 50});
-				sounds.click.play();
-				// Delay loading sfx bundle until player has specified he wants sound
-			};
-
-			sm2.onerror = function() {
-				// SM2 could not start, no sound support, something broke etc. Handle gracefully.
-				$('#menu #sfx_on').addClass('disabled');		// Make sound & music unselectable in menu
-				$('#menu #music_on').addClass('disabled');
-				$('<span class="flasherror">(Flash required for sound - not found)</span>').appendTo('#menu form p:first');
-			};
-
-			sm2.loadSfx = function() {
-				sounds.introPlane = sm2.createSound({id:'sfx_introPlane', url:'sm2/mp3/biplane.mp3', volume:50});
-				sounds.blimp = sm2.createSound({id:'sfx_blimp', url:'sm2/mp3/heli1.mp3', volume:50});
-				sounds.apache = sm2.createSound({id: 'sfx_apache', url: 'sm2/mp3/heli1.mp3', volume: 50});
-				sounds.cobra = sm2.createSound({id: 'sfx_cobra', url: 'sm2/mp3/heli1.mp3', volume: 50});
-				sounds.hind = sm2.createSound({id: 'sfx_hind', url: 'sm2/mp3/heli1.mp3', volume: 50});
-				sounds.messerschmitt = sm2.createSound({id: 'sfx_messerschmitt', url: 'sm2/mp3/messerschmitt64.mp3', volume: 50});
-				sounds.mig = sm2.createSound({id: 'sfx_mig', url: 'sm2/mp3/mig.mp3', volume: 50});
-				sounds.tomcat = sm2.createSound({id: 'sfx_tomcat', url: 'sm2/mp3/tomcat.mp3', volume: 50});
-				sounds.bullet = sm2.createSound({id: 'sfx_bullet', url: 'sm2/mp3/bullet.mp3', volume: 50});
-				sounds.explosion = sm2.createSound({id: 'sfx_explosion', url: 'sm2/mp3/boom.mp3', volume: 50});
-				sounds.paraHit1 = sm2.createSound({id: 'sfx_parahit1', url: 'sm2/mp3/aiiee.mp3', volume: 50});
-				sounds.paraHit2 = sm2.createSound({id: 'sfx_parahit2', url: 'sm2/mp3/augh.mp3', volume: 50});
-				sounds.splat1 = sm2.createSound({id: 'sfx_splat1', url: 'sm2/mp3/splat1.mp3', volume: 40});
-				sounds.splat2 = sm2.createSound({id: 'sfx_splat2', url: 'sm2/mp3/splat2.mp3', volume: 40});
-				sounds.splatargh = sm2.createSound({id: 'sfx_splatargh', url: 'sm2/mp3/splatargh.mp3', volume: 40});
-				sounds.dive = sm2.createSound({id: 'sfx_dive', url: 'sm2/mp3/stukadive1sec.mp3', volume: 50});
-				sounds.bunkerStorm = sm2.createSound({id: 'sfx_bunkerstorm', url: 'sm2/mp3/bugle.mp3', volume: 50});
-			};
-
-			sm2.loadMusic = function() {
-				// define music here
-			};
-
-			sm2.adjustGameVolume = function(incr) {	// Normally -10 or +10
-				// Master volume:
-				if (this.gameVolume + incr >= 0 && this.gameVolume + incr <= 100) {	// Stay in 0-100 range
-					this.gameVolume += incr;
-
-					for (var i of sm2.soundIDs) {
-						var sobj = sm2.sounds[sm2.soundIDs[i]];	// Access the sound object from its ID
-						sobj.setVolume(sobj.volume + incr);							// Update the sound object's volume
-					}
-				}
-				console.log("Game volume: "+this.gameVolume);
-				$('#volumewidget span').html(this.gameVolume);					// Update display
-				//$('#vol_mute').css("width",eval(3+(0.25*this.gameVolume)));	// Make the volume icon longer or shorter (15-28px)
-			};
-
-			sm2.gameMuteToggle = function() {
-				if (sm2.muted) {
-					sm2.unmute();
-				}
-				else if (!(sm2.muted)) {
-					sm2.mute();
-				}
-				console.log("Muted? "+this.muted);
-			};
-		}, 1000);
-
 
 		/**********/
 		/*! INPUT */
@@ -1753,7 +1694,8 @@
 					grenade('right');								// grenade R
 				}
 				if (e.keyCode === 81) {								// press 'q'
-					gameOver(4);
+					playSound('bunkerStorm');
+					//gameOver(4);
 				}
 			}
 
