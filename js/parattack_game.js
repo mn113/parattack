@@ -13,6 +13,11 @@ var game = {	// Holds misc vars
 	state: '',
 	lastOverlay: '',
 	statsShown: false,
+	options = {
+		gfxEnabled: false,
+		sfxEnabled: false,
+		musicEnabled: false
+	},
 	params: {
 		paraSpeed:17500,
 		bulletSpeed:0.25,
@@ -165,7 +170,7 @@ var player = {		// Vars the player takes with him from beginning to end
 /**********/
 /*! TIMER */
 /**********/
-var levelTimer = {
+game.levelTimer = {
 	startTime: null,
 	stopTime: null,
 	elapsed: 0,
@@ -205,12 +210,6 @@ var levelTimer = {
 		}
 		return timeString;
 	}
-}
-
-var options = {
-	gfxEnabled: false,
-	sfxEnabled: false,
-	musicEnabled: false
 }
 
 
@@ -325,7 +324,7 @@ function showStats(overlay) {
 	var statsHtml = '';
 	statsHtml += '<div id="scorestats">';
 	statsHtml += '<p>Lives remaining: '+player.lives+'</p>';
-	statsHtml += '<p>Level time: '+levelTimer.formatTime()+'</p>';
+	statsHtml += '<p>Level time: '+game.levelTimer.formatTime()+'</p>';
 	statsHtml += '<p>Paras landed: '+game.levelStats.landedParas+'</p>';
 	statsHtml += '<p>Bullets fired: '+game.levelStats.bulletsFired+', Hits: '+game.levelStats.hits+
 				 ', Shooting accuracy: '+game.levelStats.accuracy+'%</p>';
@@ -356,15 +355,15 @@ $('#overlay').click(function(e){
 	var clickedID = e.target.id;
 
 	if ($(e.target).hasClass('button')) {
-		if (options.sfxEnabled) sounds.click.play();		// CLICK NOT WORKING?
+		if (game.options.sfxEnabled) sounds.click.play();		// CLICK NOT WORKING?
 
 		switch(clickedID) {
 		case 'startgame':
 			// Process menu selections:
-			if (options.sfxEnabled) soundManager.loadSfx();
-			if (options.musicEnabled) soundManager.loadMusic();
-			if (options.gfxEnabled) swapSprites(2009);
-			if (options.sfxEnabled || options.musicEnabled) $('#volumewidget').show();
+			if (game.options.sfxEnabled) soundManager.loadSfx();
+			if (game.options.musicEnabled) soundManager.loadMusic();
+			if (game.options.gfxEnabled) swapSprites(2009);
+			if (game.options.sfxEnabled || game.options.musicEnabled) $('#volumewidget').show();
 			startLevel(1);
 			break;
 
@@ -415,13 +414,13 @@ $('#overlay').click(function(e){
 
 		switch(prefix) {
 		case 'sfx':
-			options.sfxEnabled = (suffix == 'on') ? true : false;
+			game.options.sfxEnabled = (suffix == 'on') ? true : false;
 			break;
 		case 'mus':
-			options.musicEnabled = (suffix == 'on') ? true : false;
+			game.options.musicEnabled = (suffix == 'on') ? true : false;
 			break;
 		case 'gfx':
-			options.gfxEnabled = (suffix == 'on') ? true : false;
+			game.options.gfxEnabled = (suffix == 'on') ? true : false;
 			break;
 		}
 	}
@@ -700,13 +699,13 @@ function startLevel(n) {
 	player.gun.savedAmmo = player.gun.ammo; // Save our ammo level for retries
 
 	// Go:
-	levelTimer.reset();
+	game.levelTimer.reset();
 	levelIntro(n);
 }
 
 function levelIntro(n) {		// Make the biplane fly across screen with level name
 	game.state = 'intro';
-	if (options.sfxEnabled) sounds.introPlane.play();
+	if (game.options.sfxEnabled) sounds.introPlane.play();
 	var $biplane = $('<div id="introplane"><span class="level'+n+'"></span></div>');
 	$biplane.prependTo('#gamefield')
 			.animate({"left":"-250px"}, 5000, 'linear', function() {
@@ -720,8 +719,20 @@ function levelIntro(n) {		// Make the biplane fly across screen with level name
 /*******************/
 /*! GAME FUNCTIONS */
 /*******************/
+function runGame() {				// All code needed for game running state
+	game.levelTimer.start();				// Start a new game timer from zero
+	$('div.overlay').hide();		// (just in case)
+
+	loops.runAll();
+}
+
+function startNextLevel() {
+	game.level++;
+	startLevel(game.level);
+}
+
 function pause() {
-	levelTimer.stop();
+	game.levelTimer.stop();
 	$('#gamefield div').stop();		// stop everything moving
 	soundManager.pauseAll();
 	game.state = 'paused';
@@ -756,7 +767,7 @@ function unpause() {
 4. User cancelled
 */
 function gameOver(reason) {
-	game.levelStats.levelTime = levelTimer.stop();	// Stop the stopwatch (total seconds)
+	game.levelStats.levelTime = game.levelTimer.stop();	// Stop the stopwatch (total seconds)
 	$('#gamefield div').stop();					// Stop everything moving
 	game.state = 'between';
 	soundManager.stopAll();
@@ -784,11 +795,6 @@ function gameOver(reason) {
 	else {
 		showOverlay('gameover', reason)
 	}
-}
-
-function startNextLevel() {
-	game.level++;
-	startLevel(game.level);
 }
 
 
@@ -858,16 +864,6 @@ var loops = {	// Variables used to manage setInterval loops which run game
 		clearInterval(this.cleanup);
 		clearInterval(this.driveByCheck);
 	}
-}
-
-/*********************/
-/*! RUNGAME FUNCTION */
-/*********************/
-function runGame() {				// All code needed for game running state
-	levelTimer.start();				// Start a new game timer from zero
-	$('div.overlay').hide();		// (just in case)
-
-	loops.runAll();
 }
 
 
@@ -961,7 +957,6 @@ function testAmmo() {
 	}
 }
 
-
 function updateGunAngle(increment) {
 	if (player.gun.angle + increment >= 0 && player.gun.angle + increment <= 180) {	// stay within bounds of 15 - 165 degrees
 		player.gun.angle += increment;
@@ -994,7 +989,7 @@ function findTarget(gunAngle) {
 }
 
 function explodeGun() {
-	if (options.sfxEnabled) sounds.explosion.play();
+	if (game.options.sfxEnabled) sounds.explosion.play();
 	game.state = '';									// Disable key input
 	$('#gun').removeClass()
 		     .animate({"left":"-=12px"}, 1)			// Shift left to accommodate explosion sprite
@@ -1031,7 +1026,7 @@ function newBullet() {
 					deregisterBullet(this);
 			   });
 
-		if (options.sfxEnabled) sounds.bullet.play();
+		if (game.options.sfxEnabled) sounds.bullet.play();
 		game.levelStats.bulletsFired++;
 		player.gun.ammo--;
 		testAmmo();		// Check if ammo stuck on zero
@@ -1105,7 +1100,7 @@ function grenade(side) {
 					.appendTo('#gamefield')					// Add it to document
 					.animate({"left":target,"bottom":"+=30px"}, 250, "swing", function() {				// y upwards
 		   				$(this).animate({"left":target,"bottom":"18px"}, 200, "swing", function() {		// y downwards
-							if (options.sfxEnabled) sounds.explosion.play();
+							if (game.options.sfxEnabled) sounds.explosion.play();
 							killGPs($nade.position().left);
 							$nade.animate({"left":"-=24px"}, 1, function() {	// shift to accommodate explosion sprite
 								explode($nade);
@@ -1128,7 +1123,7 @@ function killGPs(groundzero) {
 			console.log($para.attr("id")+" is going home in a plastic bag.");
 			$para.remove()
 			// Play sound if hit:
-			if (options.sfxEnabled) {
+			if (game.options.sfxEnabled) {
 				(Math.random() > 0.5) ? sounds.paraHit1.play() : sounds.paraHit2.play();
 			}
 		}
@@ -1138,7 +1133,7 @@ function killGPs(groundzero) {
 }
 
 // Use this directly after grenade, driveby, plane crash...
-function rebuildGroundArrays() {			// After slaughterings, rebuild the 4 arrays from scratch (easier than splicing)
+function rebuildGroundArrays() {	// After slaughterings, rebuild the 4 arrays from scratch (easier than splicing)
 	game.entities.groundParasR = [];				// Clear all the arrays
 	game.entities.groundParasL = [];
 	game.entities.bunkerParasR = [];
@@ -1214,7 +1209,7 @@ function newPlane(type) {
 		game.entities.activePlanes.push($plane);									// Register "blimp12" as active
 		game.entities.pid++;
 
-		if (options.sfxEnabled) sounds[planeType].play();
+		if (game.options.sfxEnabled) sounds[planeType].play();
 
 		var dest = $plane.data("dest");
 		$plane.animate({"left": dest}, planeSpeed, "linear", function() {	// Start it moving
@@ -1256,7 +1251,7 @@ function divePlane($plane) {			// Make Messerschmitts dive and crash
 		}
 	}, 100);
 
-	if (options.sfxEnabled) sounds.dive.play(); // Sfx
+	if (game.options.sfxEnabled) sounds.dive.play(); // Sfx
 
 
 
@@ -1268,7 +1263,7 @@ function divePlane($plane) {			// Make Messerschmitts dive and crash
 
 				//explode($plane);		// CAUSES FREEZING
 				// explode() function duplicated here:	// WASTEFUL!
-				if (options.sfxEnabled) sounds.explosion.play();		// BOOM!
+				if (game.options.sfxEnabled) sounds.explosion.play();		// BOOM!
 
 				$plane.stop().removeClass('rtl').removeClass('ltr').addClass('exploding').addClass('fr1');
 
@@ -1295,7 +1290,7 @@ function divePlane($plane) {			// Make Messerschmitts dive and crash
 }
 
 function explodePlane($plane) {
-	if (options.sfxEnabled) {
+	if (game.options.sfxEnabled) {
 		//sounds[eval($plane.data("planeType"))].stop();	// Stop the sound of that plane (WHAT IF 2 FLYING?)
 		//soundManager.stop(eval('sfx_'+$plane.data("planeType")));	// Stops the sound by soundid
 	}
@@ -1306,7 +1301,7 @@ function explodePlane($plane) {
 }
 
 function explode($obj) {
-	if (options.sfxEnabled) sounds.explosion.play();		// BOOM!
+	if (game.options.sfxEnabled) sounds.explosion.play();		// BOOM!
 
 	$obj.stop().removeClass('rtl').removeClass('ltr').removeClass('grenade').addClass('exploding').addClass('fr1');
 
@@ -1402,7 +1397,7 @@ function animateParas() {
 
 function killPara($para) {
 	// Sound effect:
-	if (options.sfxEnabled) {
+	if (game.options.sfxEnabled) {
 		var n = 1 + Math.floor(5*Math.random())	// Integer 1-5
 		switch (n) {
 			case 1: sounds.paraHit1.play(); break;
@@ -1551,7 +1546,7 @@ function reachBunker($groundPara) {
 function paraBunkerStorm(side) {
 	// animate paras storming the bunker
 	console.log('paras are storming your bunker on the '+side+' side!');
-	if (options.sfxEnabled) sounds.bunkerStorm.play();
+	if (game.options.sfxEnabled) sounds.bunkerStorm.play();
 
 	if (side=='right') {
 		$(game.entities.bunkerParasR[0]).animate({"top":"560px","left":"440px"}, 700, 'linear', function() {
@@ -1617,8 +1612,6 @@ function paraGenerator() {		// Generate paras randomly from active planes
 		newPara($plane);																// Bombs away!
 	}
 }
-
-var planesHit = new Array();	// Stores all planes hit, for exploding en masse a bit later
 
 function detectCollisions() {
 
