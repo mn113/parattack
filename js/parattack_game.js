@@ -59,7 +59,85 @@ var game = {	// Holds misc vars
 		}
 	},
 	level: 1,
-	levelStats: {}
+	levelStats: {
+		levelTime:0,
+		bulletsFired:0,
+		hits:0,
+		planeKills:0,
+		killsNeeded:30,	// Set per level in startLevel(level)
+		landedParas:0,
+		accuracy: 0,
+		comboScore:0,
+		comboChain:[],	// Temporarily stores bids which hit planes. Tested for consecutivity with showCombo()
+		driveBys:1,
+		allKillsThisLevel:[0,0,0,0,0,0,0,0],
+
+		resetAll: function() {
+			// reset method to replace code in startLevel() function
+		},
+
+		scores: {
+			levelBonus:0,
+			planeScore:0,
+			accuScore:0,
+			comboScore:0,
+			timeScore:0,
+			paraScore:0,
+			levelScore:0,
+
+			calcScore: function() {
+				this.levelBonus = (player.levelsCompleted[game.level-1] == true) ? 500 : 0;					// gain 500 for beating the level
+				var planeScore = 0;
+				for (var i in game.levelStats.allKillsThisLevel) {
+					this.planeScore += game.levelStats.allKillsThisLevel[i]*(1+game.params.extraBulletsPerKill[i]);
+				}
+				this.accuScore = (!isNaN(game.levelStats.accuracy)) ? Math.floor(10*game.levelStats.accuracy) : 0;// score 0 if accuracy invalid
+				this.comboScore = game.levelStats.comboScore;
+				this.timeScore = 600 - game.levelStats.levelTime; 											// finish inside 10 minutes to score points here
+				this.paraScore = (game.levelStats.landedParas == 0) ? 1500 : -25 * game.levelStats.landedParas;	// bonus for flawless victory
+				this.levelScore = (this.levelBonus + this.planeScore + this.accuScore + this.timeScore + this.paraScore);	// Total score for this level
+
+				player.scores.allLevelScores[game.level-1] = this.levelScore;								// Store it in array
+				player.scores.spendableScore += this.levelScore;										// Add latest score to cumulator
+				player.scores.cumulativeScore += this.levelScore;										// Add latest score to cumulator
+
+				this.checkRewards();
+			},
+
+			loadScore: function() {
+				var scoreHtml = '<p>Level bonus: '+this.levelBonus+'</p>'+
+								'<p>Targets bonus: '+this.planeScore+'</p>'+
+								'<p>Accuracy bonus: '+this.accuScore+'</p>'+
+								'<p>Combo bonus: '+this.comboScore+'</p>'+
+								'<p>Time bonus: '+this.timeScore+'</p><p>'+
+								'<p>Ground penalty: '+this.paraScore+'</p>'+
+								'<p>Level score: '+this.levelScore+'</p>'+
+								'<p>Game score so far: '+player.scores.spendableScore+'</p>';
+
+				if (this.parascore>0) scoreHtml.replace('Ground penalty','Ground bonus');
+
+				return scoreHtml;
+			},
+
+			checkRewards: function() {
+				var tot = player.scores.cumulativeScore;	// MUST BE SEPARATE FROM SHOP SCORE
+				if (tot > game.params.life_thr) {
+					player.lives++;
+					//updateLives();
+					// Show message
+					console.log('Gained an extra life for '+game.params.life_thr+' points.')
+					game.params.life_thr += 4000;
+				}
+				if (tot > game.params.nade_thr) {
+					player.grenades++;
+					//setGrenades();
+					// Show message
+					console.log('Gained a grenade for '+game.params.nade_thr+' points.')
+					game.params.nade_thr += 2500;
+				}
+			}
+		}
+	}
 };
 
 var player = {		// Vars the player takes with him from beginning to end
@@ -80,86 +158,6 @@ var player = {		// Vars the player takes with him from beginning to end
 		allLevelScores:[],
 		spendableScore:0,
 		cumulativeScore:0
-	}
-}
-
-var levelStats = {
-	levelTime:0,
-	bulletsFired:0,
-	hits:0,
-	planeKills:0,
-	killsNeeded:30,	// Set per level in startLevel(level)
-	landedParas:0,
-	accuracy: 0,
-	comboScore:0,
-	comboChain:[],	// Temporarily stores bids which hit planes. Tested for consecutivity with showCombo()
-	driveBys:1,
-	allKillsThisLevel:[0,0,0,0,0,0,0,0],
-
-	resetAll: function() {
-		// reset method to replace code in startLevel() function
-	},
-
-	scores: {
-		levelBonus:0,
-		planeScore:0,
-		accuScore:0,
-		comboScore:0,
-		timeScore:0,
-		paraScore:0,
-		levelScore:0,
-
-		calcScore: function() {
-			this.levelBonus = (player.levelsCompleted[game.level-1] == true) ? 500 : 0;					// gain 500 for beating the level
-			var planeScore = 0;
-			for (var i in levelStats.allKillsThisLevel) {
-				this.planeScore += levelStats.allKillsThisLevel[i]*(1+game.params.extraBulletsPerKill[i]);
-			}
-			this.accuScore = (!isNaN(levelStats.accuracy)) ? Math.floor(10*levelStats.accuracy) : 0;// score 0 if accuracy invalid
-			this.comboScore = levelStats.comboScore;
-			this.timeScore = 600 - levelStats.levelTime; 											// finish inside 10 minutes to score points here
-			this.paraScore = (levelStats.landedParas == 0) ? 1500 : -25 * levelStats.landedParas;	// bonus for flawless victory
-			this.levelScore = (this.levelBonus + this.planeScore + this.accuScore + this.timeScore + this.paraScore);	// Total score for this level
-
-			player.scores.allLevelScores[game.level-1] = this.levelScore;								// Store it in array
-			player.scores.spendableScore += this.levelScore;										// Add latest score to cumulator
-			player.scores.cumulativeScore += this.levelScore;										// Add latest score to cumulator
-
-			this.checkRewards();
-		},
-
-		loadScore: function() {
-			var scoreHtml = '<p>Level bonus: '+this.levelBonus+'</p>'+
-							'<p>Targets bonus: '+this.planeScore+'</p>'+
-							'<p>Accuracy bonus: '+this.accuScore+'</p>'+
-							'<p>Combo bonus: '+this.comboScore+'</p>'+
-							'<p>Time bonus: '+this.timeScore+'</p><p>'+
-							'<p>Ground penalty: '+this.paraScore+'</p>'+
-							'<p>Level score: '+this.levelScore+'</p>'+
-							'<p>Game score so far: '+player.scores.spendableScore+'</p>';
-
-			if (this.parascore>0) scoreHtml.replace('Ground penalty','Ground bonus');
-
-			return scoreHtml;
-		},
-
-		checkRewards: function() {
-			var tot = player.scores.cumulativeScore;	// MUST BE SEPARATE FROM SHOP SCORE
-			if (tot > game.params.life_thr) {
-				player.lives++;
-				//updateLives();
-				// Show message
-				console.log('Gained an extra life for '+game.params.life_thr+' points.')
-				game.params.life_thr += 4000;
-			}
-			if (tot > game.params.nade_thr) {
-				player.grenades++;
-				//setGrenades();
-				// Show message
-				console.log('Gained a grenade for '+game.params.nade_thr+' points.')
-				game.params.nade_thr += 2500;
-			}
-		}
 	}
 }
 
@@ -237,7 +235,7 @@ $.ajaxSetup ({
 
 $("#overlay .stats a").live("click", function() {
 	console.log($(this));
-	$(this).parent.html(levelStats.scores.loadScore());
+	$(this).parent.html(game.levelStats.scores.loadScore());
 });
 
 function showOverlay(overlay, type) {
@@ -265,7 +263,7 @@ function showOverlay(overlay, type) {
 		break;
 
 	case 'score':
-		$("#score .stats").html(levelStats.scores.loadScore());		// DOESN'T WORK
+		$("#score .stats").html(game.levelStats.scores.loadScore());		// DOESN'T WORK
 		break;
 
 	case 'shop':
@@ -276,7 +274,7 @@ function showOverlay(overlay, type) {
 
 	case 'victory':
 		player.levelsCompleted[game.level-1] = true;
-		levelStats.scores.calcScore();
+		game.levelStats.scores.calcScore();
 		game.lastOverlay = 'victory';
 		game.state = 'between';
 
@@ -321,32 +319,32 @@ function hideOverlay() {
 }
 
 function showStats(overlay) {
-	levelStats.accuracy = 100*levelStats.hits/levelStats.bulletsFired;
-	levelStats.accuracy = isNaN(levelStats.accuracy) ? 0 : levelStats.accuracy.toFixed(2);
+	game.levelStats.accuracy = 100*game.levelStats.hits/game.levelStats.bulletsFired;
+	game.levelStats.accuracy = isNaN(game.levelStats.accuracy) ? 0 : game.levelStats.accuracy.toFixed(2);
 
 	var statsHtml = '';
 	statsHtml += '<div id="scorestats">';
 	statsHtml += '<p>Lives remaining: '+player.lives+'</p>';
 	statsHtml += '<p>Level time: '+levelTimer.formatTime()+'</p>';
-	statsHtml += '<p>Paras landed: '+levelStats.landedParas+'</p>';
-	statsHtml += '<p>Bullets fired: '+levelStats.bulletsFired+', Hits: '+levelStats.hits+
-				 ', Shooting accuracy: '+levelStats.accuracy+'%</p>';
-	statsHtml += '<p>Planes killed: '+levelStats.planeKills+'</p>';
-	statsHtml += '<p>Paras killed: '+levelStats.allKillsThisLevel[7]+'</p>';
+	statsHtml += '<p>Paras landed: '+game.levelStats.landedParas+'</p>';
+	statsHtml += '<p>Bullets fired: '+game.levelStats.bulletsFired+', Hits: '+game.levelStats.hits+
+				 ', Shooting accuracy: '+game.levelStats.accuracy+'%</p>';
+	statsHtml += '<p>Planes killed: '+game.levelStats.planeKills+'</p>';
+	statsHtml += '<p>Paras killed: '+game.levelStats.allKillsThisLevel[7]+'</p>';
 	// Create planes matrix:
 	for (i=0; i<game.params.planeTypes.length; i++) {
 		statsHtml += '<div class="scoreplane '+game.params.planeTypes[i]+'"></div>'+
-					 '<p class="total">x'+levelStats.allKillsThisLevel[i]+'</p>';
+					 '<p class="total">x'+game.levelStats.allKillsThisLevel[i]+'</p>';
 		if (i==3) statsHtml += '<br style="clear:both; margin-bottom:40px;"/>';
 	}
-	statsHtml += '<div class="scoreplane para"></div><p class="total">x'+levelStats.allKillsThisLevel[7]+'</p>';
+	statsHtml += '<div class="scoreplane para"></div><p class="total">x'+game.levelStats.allKillsThisLevel[7]+'</p>';
 	statsHtml += '<br /><br /></div>';
 
 	$('#'+overlay+' .stats').html(statsHtml);	// Display it in the requesting overlay
 	game.statsShown = true;
 
 	var successword = (player.levelsCompleted[game.level-1]) ? 'completed' : 'failed';
-	console.log('Level '+game.level+' '+successword+'. Bullets fired: '+levelStats.bulletsFired+', Hits: '+levelStats.hits+', Shooting accuracy: '+levelStats.accuracy)+'. Skill: '+assessSkill();
+	console.log('Level '+game.level+' '+successword+'. Bullets fired: '+game.levelStats.bulletsFired+', Hits: '+game.levelStats.hits+', Shooting accuracy: '+game.levelStats.accuracy)+'. Skill: '+assessSkill();
 }
 
 
@@ -688,16 +686,16 @@ function startLevel(n) {
 
 	// Set level parameters:
 	game.level = n;
-	levelStats.killsNeeded = game.params.killsNeededPerLevel[game.level-1];
-	levelStats.hits = 0;
-	levelStats.planeKills = 0;
-	levelStats.allKillsThisLevel = [0,0,0,0,0,0,0,0] ;	// Clear kill counter for the 8 enemy types
-	levelStats.comboChain = [];
-	levelStats.landedParas = 0;
-	levelStats.levelTime = 0;
-	levelStats.bulletsFired = 0;
-	levelStats.driveBys = (game.level == 8) ? 3 : 1;
-	//levelStats.resetAll(); 		// TBD - replaces the above block
+	game.levelStats.killsNeeded = game.params.killsNeededPerLevel[game.level-1];
+	game.levelStats.hits = 0;
+	game.levelStats.planeKills = 0;
+	game.levelStats.allKillsThisLevel = [0,0,0,0,0,0,0,0] ;	// Clear kill counter for the 8 enemy types
+	game.levelStats.comboChain = [];
+	game.levelStats.landedParas = 0;
+	game.levelStats.levelTime = 0;
+	game.levelStats.bulletsFired = 0;
+	game.levelStats.driveBys = (game.level == 8) ? 3 : 1;
+	//game.levelStats.resetAll(); 		// TBD - replaces the above block
 
 	player.gun.savedAmmo = player.gun.ammo; // Save our ammo level for retries
 
@@ -758,7 +756,7 @@ function unpause() {
 4. User cancelled
 */
 function gameOver(reason) {
-	levelStats.levelTime = levelTimer.stop();	// Stop the stopwatch (total seconds)
+	game.levelStats.levelTime = levelTimer.stop();	// Stop the stopwatch (total seconds)
 	$('#gamefield div').stop();					// Stop everything moving
 	game.state = 'between';
 	soundManager.stopAll();
@@ -780,7 +778,7 @@ function gameOver(reason) {
 	game.statsShown = false;
 
 	if (reason == 1) {										// reason 1 = victory (reached required kills total)
-		type = (levelStats.landedParas == 0) ? 1 : 0;		// victory type 1 = flawless victory (no landings)
+		type = (game.levelStats.landedParas == 0) ? 1 : 0;		// victory type 1 = flawless victory (no landings)
 		showOverlay('victory', type)
 	}
 	else {
@@ -813,8 +811,8 @@ var loops = {	// Variables used to manage setInterval loops which run game
 		}, 50);
 
 		this.killsLoop = setInterval(function() {
-			if (levelStats.planeKills % 40 == 0) $('#killCount').html();			// Reset kill icons after 40
-			if (levelStats.planeKills >= levelStats.killsNeeded) gameOver(1);		// Enough kills to beat the level!
+			if (game.levelStats.planeKills % 40 == 0) $('#killCount').html();			// Reset kill icons after 40
+			if (game.levelStats.planeKills >= game.levelStats.killsNeeded) gameOver(1);		// Enough kills to beat the level!
 		}, 1000);
 
 		this.planeGen = setInterval(function() {			// Start plane generator
@@ -838,14 +836,14 @@ var loops = {	// Variables used to manage setInterval loops which run game
 		}, 5000);
 
 		this.driveByCheck = setInterval(function() {		// Make a drive-by occur once per level when the situation is desperate
-			var a = (levelStats.driveBys > 0) ? true : false;
+			var a = (game.levelStats.driveBys > 0) ? true : false;
 			var b = (game.entities.bunkerParasR.length >= 2 || game.entities.bunkerParasL.length >= 2) ? true : false;
 			var c = (game.entities.groundParasR.length + game.entities.groundParasL.length > 4 ) ? true : false;
 			var d = (Math.random() > 0.8) ? true : false;		// 1 in  5 chance
 
 			if (a && b && c && d) {
 				driveBy();
-				levelStats.driveBys--;
+				game.levelStats.driveBys--;
 			}
 		}, 10000);	// Try every 10 seconds
 	},
@@ -918,11 +916,11 @@ function updateLives() {
 function assessSkill() {
 	var playerSkill = 0;						// Only last level contributes to skill
 	playerSkill += (player.lives-3)*0.02				// 3 lives left: no effect
-	playerSkill += (levelStats.accuracy-15)*0.0075;		// 15% accuracy threshold: score 25, +0.075
+	playerSkill += (game.levelStats.accuracy-15)*0.0075;		// 15% accuracy threshold: score 25, +0.075
 	playerSkill += (player.gun.ammo < 100) ? -0.05 : 0;	// if ammo under 100, lose 0.05
-	playerSkill -= levelStats.landedParas*0.01;			// 5 paras landed: -0.05
+	playerSkill -= game.levelStats.landedParas*0.01;			// 5 paras landed: -0.05
 	playerSkill += (player.grenades-3)*0.005;			// Use your grenades, skill decreases
-	playerSkill += (1.2 - (levelStats.allKillsThisLevel[7]/(levelStats.planeKills + 1)))*0.05;	// Para/plane ratio above 1.2, lose skill
+	playerSkill += (1.2 - (game.levelStats.allKillsThisLevel[7]/(game.levelStats.planeKills + 1)))*0.05;	// Para/plane ratio above 1.2, lose skill
 	console.log("Player's total skill: "+playerSkill);
 
 	if (player.levelsCompleted[game.level-1] = true) { 	// If player victorious,
@@ -1034,7 +1032,7 @@ function newBullet() {
 			   });
 
 		if (options.sfxEnabled) sounds.bullet.play();
-		levelStats.bulletsFired++;
+		game.levelStats.bulletsFired++;
 		player.gun.ammo--;
 		testAmmo();		// Check if ammo stuck on zero
 		updateStats();
@@ -1073,21 +1071,21 @@ function showCombo(x,y,hits) {
 			  .css("left",x)
 			  .css("top",y+20)
 			  .fadeOut(1500);
-	levelStats.comboScore += points;
+	game.levelStats.comboScore += points;
 }
 
 function testComboChain(hid) {
 	// example comboChain array: (1,2,3) <- 4 comes in
-	levelStats.comboChain.push(hid);							// Add the new hitting bullet ID
-	var n = levelStats.comboChain.length;							// Array should never be empty except at start of level
+	game.levelStats.comboChain.push(hid);							// Add the new hitting bullet ID
+	var n = game.levelStats.comboChain.length;							// Array should never be empty except at start of level
 
 	if (n>1) {
-		if (levelStats.comboChain[n-1] - levelStats.comboChain[n-2] == 1) {	// If newest bullet makes a consecutive hit,
+		if (game.levelStats.comboChain[n-1] - game.levelStats.comboChain[n-2] == 1) {	// If newest bullet makes a consecutive hit,
 			var comboSize = n-1;					// Return the new combo length
 		}
 		else {										// If not consecutive,
-			levelStats.comboChain = [];				// Empty the array
-			levelStats.comboChain.push(hid);		// Add back in the hitting bullet ID
+			game.levelStats.comboChain = [];				// Empty the array
+			game.levelStats.comboChain.push(hid);		// Add back in the hitting bullet ID
 			var comboSize = 0;						// No combo awarded
 		}
 	}
@@ -1459,7 +1457,7 @@ function paraLand($para) {
 	var x = $para.position().left;				// His landing spot
 
 	deregisterPara($para);						// Deregister from paras
-	levelStats.landedParas++;
+	game.levelStats.landedParas++;
 
 	$para.removeClass('normal')					// Convert para to a groundPara
 		   .removeClass('alt')
@@ -1647,8 +1645,8 @@ function detectCollisions() {
 					deregisterPara($para);
 					killPara($para);
 					console.log($para.attr("id")+" was hit by "+$bullet.attr("id")+"!");
-					levelStats.hits++;
-				 	levelStats.allKillsThisLevel[7]++;						// Count 1 para kill
+					game.levelStats.hits++;
+				 	game.levelStats.allKillsThisLevel[7]++;						// Count 1 para kill
 					player.gun.ammo += game.params.extraBulletsPerKill[7];	// Gain his ammo bonus
 
 					// Combo test:
@@ -1675,12 +1673,12 @@ function detectCollisions() {
 						if ($plane.data("planeType") == 'messerschmitt') divePlane($plane);
 						else explodePlane($plane);
 
-						levelStats.hits++;
-						levelStats.planeKills++;
-					 	levelStats.allKillsThisLevel[$plane.data("type")]++;	// Count 1 kill
+						game.levelStats.hits++;
+						game.levelStats.planeKills++;
+					 	game.levelStats.allKillsThisLevel[$plane.data("type")]++;	// Count 1 kill
 						$('<div class="kill"></div>').appendTo('#killCount');	// Add 1 kill icon to counter
 					 	player.gun.ammo += $plane.data("ammoBonus");			// Gain its ammo bonus
-						console.log($plane.attr("id")+" was hit by "+$bullet.attr("id")+"! ("+levelStats.planeKills+"k)");
+						console.log($plane.attr("id")+" was hit by "+$bullet.attr("id")+"! ("+game.levelStats.planeKills+"k)");
 						// CODE STOPS AROUND HERE IN OPERA
 
 						// Combo test:
@@ -1770,7 +1768,7 @@ $(document).keydown(function(e) {			// keydown is Safari-compatible; keypress al
 		driveBy();
 	}
 	if (e.keyCode == 75) {									// press 'k'
-		levelStats.planeKills += 13;						// gain 13 kills
+		game.levelStats.planeKills += 13;						// gain 13 kills
 	}
 	if (e.keyCode == 65) {									// press 'a'
 		player.gun.ammo += 40;								// extra bullets
