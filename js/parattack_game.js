@@ -13,7 +13,7 @@ var game = {	// Holds misc vars
 	state: '',
 	lastOverlay: '',
 	statsShown: false,
-	options = {
+	options: {
 		gfxEnabled: false,
 		sfxEnabled: false,
 		musicEnabled: false
@@ -43,7 +43,7 @@ var game = {	// Holds misc vars
 		life_thr: 4000,
 		nade_thr: 2500
 	},
-	player: {},
+	player: {},	// TODO
 	entities: {		// Holds the sprite objects created and destroyed each level
 		activePlanes:[],
 		activeParas:[],
@@ -213,138 +213,140 @@ game.levelTimer = {
 }
 
 
-/*! jQuery document.ready() { */
-$(function() {	// on document ready:
-
-
-$('img#title').click(function() {
-	$(this).animate({"top":"-=600px"},500, 'linear', function() {
-		updateStats();
-		showOverlay('menu');
-	});
-});
-
-
 /******************/
 /*! AJAX OVERLAYS */
 /******************/
-$.ajaxSetup ({
-	cache: true
-});
+var ui = {
+	showOverlay: function(overlay, type) {
+		if (!($('#overlay').is(':visible'))) {
+			$('#overlay').show().animate({"top":0}, 500, 'linear');
+			//slideDown(800);		// Only animates in if not already visible
+		}
 
-$("#overlay .stats a").live("click", function() {
-	console.log($(this));
-	$(this).parent.html(game.levelStats.scores.loadScore());
-});
+		$('#overlay').children().hide()					// Hide all
+					 .siblings('#'+overlay).show();		// Show desired
 
-function showOverlay(overlay, type) {
-	if (!($('#overlay').is(':visible'))) {
-		$('#overlay').show().animate({"top":0}, 500, 'linear');
-		//slideDown(800);		// Only animates in if not already visible
+		switch(overlay) {
+		case 'menu':
+			game.lastOverlay = 'menu';
+			game.state = 'menu';
+			// set options to last known state?
+			break;
+
+		case 'rules':
+			// nada
+			break;
+
+		case 'paused':
+			// add stats?
+			break;
+
+		case 'score':
+			$("#score .stats").html(game.levelStats.scores.loadScore());		// DOESN'T WORK
+			break;
+
+		case 'shop':
+			$('#shop h4 span').html(player.scores.spendableScore);	// Refresh points
+			$('#shop h5').html();									// Clear message
+			// update shop inventory
+			break;
+
+		case 'victory':
+			player.levelsCompleted[game.level-1] = true;
+			game.levelStats.scores.calcScore();
+			game.lastOverlay = 'victory';
+			game.state = 'between';
+
+			if (type == 0) $('#victory h2').html("Victory!");					// Standard h2 heading for victory screen
+			else if (type == 1) $('#victory h2').html("Flawless Wicktory!");	// Alternative h2 heading for victory screen
+
+			ui.showStats('victory');
+			break;
+
+		case 'gameover':
+			game.lastOverlay = 'gameover';
+
+			var msgs = {
+				2: 'Paras stormed your bunker :(',
+				3: 'With no more ammo, it was only a matter of time...',
+				4: 'Cancelled by player'
+			}
+
+			$('#gameover h4').html(msgs[type]);		// Insert the reason for loss
+
+			player.lives--;					// Lose 1 life
+			updateLives();
+
+			if (player.lives > 0) {
+				ui.showStats('gameover');
+			}
+			else {
+				game.state = 'over';
+				// GAME OVER! (FOR REAL!)
+			}
+			break;
+		default:
+			// whatever
+		}
+	},
+
+	hideOverlay: function() {
+		$('#overlay').animate({"top":"-600px"}, 500, 'linear', function() {
+			$(this).hide();
+		});
+		//slideUp(800).html('');
+	},
+
+	showStats: function(overlay) {
+		game.levelStats.accuracy = 100*game.levelStats.hits/game.levelStats.bulletsFired;
+		game.levelStats.accuracy = isNaN(game.levelStats.accuracy) ? 0 : game.levelStats.accuracy.toFixed(2);
+
+		var statsHtml = '';
+		statsHtml += '<div id="scorestats">';
+		statsHtml += '<p>Lives remaining: '+player.lives+'</p>';
+		statsHtml += '<p>Level time: '+game.levelTimer.formatTime()+'</p>';
+		statsHtml += '<p>Paras landed: '+game.levelStats.landedParas+'</p>';
+		statsHtml += '<p>Bullets fired: '+game.levelStats.bulletsFired+', Hits: '+game.levelStats.hits+
+					 ', Shooting accuracy: '+game.levelStats.accuracy+'%</p>';
+		statsHtml += '<p>Planes killed: '+game.levelStats.planeKills+'</p>';
+		statsHtml += '<p>Paras killed: '+game.levelStats.allKillsThisLevel[7]+'</p>';
+		// Create planes matrix:
+		for (i=0; i<game.params.planeTypes.length; i++) {
+			statsHtml += '<div class="scoreplane '+game.params.planeTypes[i]+'"></div>'+
+						 '<p class="total">x'+game.levelStats.allKillsThisLevel[i]+'</p>';
+			if (i==3) statsHtml += '<br style="clear:both; margin-bottom:40px;"/>';
+		}
+		statsHtml += '<div class="scoreplane para"></div><p class="total">x'+game.levelStats.allKillsThisLevel[7]+'</p>';
+		statsHtml += '<br /><br /></div>';
+
+		$('#'+overlay+' .stats').html(statsHtml);	// Display it in the requesting overlay
+		game.statsShown = true;
+
+		var successword = (player.levelsCompleted[game.level-1]) ? 'completed' : 'failed';
+		console.log('Level '+game.level+' '+successword+'. Bullets fired: '+game.levelStats.bulletsFired+', Hits: '+game.levelStats.hits+', Shooting accuracy: '+game.levelStats.accuracy)+'. Skill: '+assessSkill();
 	}
+};
 
-	$('#overlay').children().hide()					// Hide all
-				 .siblings('#'+overlay).show();		// Show desired
 
-	switch(overlay) {
-	case 'menu':
-		game.lastOverlay = 'menu';
-		game.state = 'menu';
-		// set options to last known state?
-		break;
+/*! jQuery document.ready() { */
+$(function() {	// on document ready:
 
-	case 'rules':
-		// nada
-		break;
-
-	case 'paused':
-		// add stats?
-		break;
-
-	case 'score':
-		$("#score .stats").html(game.levelStats.scores.loadScore());		// DOESN'T WORK
-		break;
-
-	case 'shop':
-		$('#shop h4 span').html(player.scores.spendableScore);	// Refresh points
-		$('#shop h5').html();									// Clear message
-		// update shop inventory
-		break;
-
-	case 'victory':
-		player.levelsCompleted[game.level-1] = true;
-		game.levelStats.scores.calcScore();
-		game.lastOverlay = 'victory';
-		game.state = 'between';
-
-		if (type == 0) $('#victory h2').html("Victory!");					// Standard h2 heading for victory screen
-		else if (type == 1) $('#victory h2').html("Flawless Wicktory!");	// Alternative h2 heading for victory screen
-
-		showStats('victory');
-		break;
-
-	case 'gameover':
-		game.lastOverlay = 'gameover';
-
-		var msgs = {
-			2: 'Paras stormed your bunker :(',
-			3: 'With no more ammo, it was only a matter of time...',
-			4: 'Cancelled by player'
-		}
-
-		$('#gameover h4').html(msgs[type]);		// Insert the reason for loss
-
-		player.lives--;					// Lose 1 life
-		updateLives();
-
-		if (player.lives > 0) {
-			showStats('gameover');
-		}
-		else {
-			game.state = 'over';
-			// GAME OVER! (FOR REAL!)
-		}
-		break;
-	default:
-		// whatever
-	}
-}
-
-function hideOverlay() {
-	$('#overlay').animate({"top":"-600px"}, 500, 'linear', function() {
-		$(this).hide();
+	$.ajaxSetup ({
+		cache: true
 	});
-	//slideUp(800).html('');
-}
 
-function showStats(overlay) {
-	game.levelStats.accuracy = 100*game.levelStats.hits/game.levelStats.bulletsFired;
-	game.levelStats.accuracy = isNaN(game.levelStats.accuracy) ? 0 : game.levelStats.accuracy.toFixed(2);
+	$("#overlay .stats a").live("click", function() {
+		console.log($(this));
+		$(this).parent.html(game.levelStats.scores.loadScore());
+	});
 
-	var statsHtml = '';
-	statsHtml += '<div id="scorestats">';
-	statsHtml += '<p>Lives remaining: '+player.lives+'</p>';
-	statsHtml += '<p>Level time: '+game.levelTimer.formatTime()+'</p>';
-	statsHtml += '<p>Paras landed: '+game.levelStats.landedParas+'</p>';
-	statsHtml += '<p>Bullets fired: '+game.levelStats.bulletsFired+', Hits: '+game.levelStats.hits+
-				 ', Shooting accuracy: '+game.levelStats.accuracy+'%</p>';
-	statsHtml += '<p>Planes killed: '+game.levelStats.planeKills+'</p>';
-	statsHtml += '<p>Paras killed: '+game.levelStats.allKillsThisLevel[7]+'</p>';
-	// Create planes matrix:
-	for (i=0; i<game.params.planeTypes.length; i++) {
-		statsHtml += '<div class="scoreplane '+game.params.planeTypes[i]+'"></div>'+
-					 '<p class="total">x'+game.levelStats.allKillsThisLevel[i]+'</p>';
-		if (i==3) statsHtml += '<br style="clear:both; margin-bottom:40px;"/>';
-	}
-	statsHtml += '<div class="scoreplane para"></div><p class="total">x'+game.levelStats.allKillsThisLevel[7]+'</p>';
-	statsHtml += '<br /><br /></div>';
-
-	$('#'+overlay+' .stats').html(statsHtml);	// Display it in the requesting overlay
-	game.statsShown = true;
-
-	var successword = (player.levelsCompleted[game.level-1]) ? 'completed' : 'failed';
-	console.log('Level '+game.level+' '+successword+'. Bullets fired: '+game.levelStats.bulletsFired+', Hits: '+game.levelStats.hits+', Shooting accuracy: '+game.levelStats.accuracy)+'. Skill: '+assessSkill();
-}
+	// Start game from title screen:
+	$('img#title').click(function() {
+		$(this).animate({"top":"-=600px"},500, 'linear', function() {
+			updateStats();
+			ui.showOverlay('menu');
+		});
+	});
 
 
 /***************/
@@ -382,19 +384,19 @@ $('#overlay').click(function(e){
 			break;
 
 		case 'showrules':
-			showOverlay('rules');
+			ui.showOverlay('rules');
 			break;
 
 		case 'showscore':
-			showOverlay('score');
+			ui.showOverlay('score');
 			break;
 
 		case 'showshop':
-			showOverlay('shop');
+			ui.showOverlay('shop');
 			break;
 
 		case 'back':
-			showOverlay(game.lastOverlay);
+			ui.showOverlay(game.lastOverlay);
 			break;
 
 		case 'resume':
@@ -741,7 +743,7 @@ function pause() {
 	loops.stopAll();
 
 	//showPaused();
-	showOverlay('paused');
+	ui.showOverlay('paused');
 	console.log("game paused");
 }
 
@@ -790,10 +792,10 @@ function gameOver(reason) {
 
 	if (reason == 1) {										// reason 1 = victory (reached required kills total)
 		type = (game.levelStats.landedParas == 0) ? 1 : 0;		// victory type 1 = flawless victory (no landings)
-		showOverlay('victory', type)
+		ui.showOverlay('victory', type)
 	}
 	else {
-		showOverlay('gameover', reason)
+		ui.showOverlay('gameover', reason)
 	}
 }
 
