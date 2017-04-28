@@ -13,7 +13,6 @@ var game = {	// Holds misc vars
 	state: '',
 	lastOverlay: '',
 	statsShown: false,
-	level: 1,
 	params: {
 		paraSpeed:17500,
 		bulletSpeed:0.25,
@@ -39,30 +38,29 @@ var game = {	// Holds misc vars
 		life_thr: 4000,
 		nade_thr: 2500
 	},
-	entities: {},
 	player: {},
+	entities: {		// Holds the sprite objects created and destroyed each level
+		activePlanes:[],
+		activeParas:[],
+		activeBullets:[],
+		groundParasL:[], groundParasR:[],
+		bunkerParasL:[], bunkerParasR:[],
+		pid:1,			// Plane, bullet, man (para) counters
+		bid:1,
+		mid:1,
+
+		resetAll: function() {
+			this.activePlanes = [];
+			this.activeParas = [];
+			this.activeBullets = [];
+			this.groundParasL = [];	this.groundParasR = [];
+			this.bunkerParasL = []; this.bunkerParasR = [];
+			this.bid = this.pid = this.mid = 1;			// Reset ids
+		}
+	},
+	level: 1,
 	levelStats: {}
 };
-
-var entities = {	// Holds the sprite objects created and destroyed each level
-	activePlanes:[],
-	activeParas:[],
-	activeBullets:[],
-	groundParasL:[], groundParasR:[],
-	bunkerParasL:[], bunkerParasR:[],
-	pid:1,			// Plane, bullet, man (para) counters
-	bid:1,
-	mid:1,
-
-	resetAll: function() {
-		this.activePlanes = [];
-		this.activeParas = [];
-		this.activeBullets = [];
-		this.groundParasL = [];	this.groundParasR = [];
-		this.bunkerParasL = []; this.bunkerParasR = [];
-		this.bid = this.pid = this.mid = 1;			// Reset ids
-	}
-}
 
 var player = {		// Vars the player takes with him from beginning to end
 	lives:3,
@@ -686,7 +684,7 @@ function startLevel(n) {
 	updateLives();
 
 	// Reset enemies to zero:
-	entities.resetAll();
+	game.entities.resetAll();
 
 	// Set level parameters:
 	game.level = n;
@@ -770,13 +768,13 @@ function gameOver(reason) {
 
 	// Clean up gamefield:
 	$('div.plane, div.para, div.bullet, div.combo').remove();
-	entities.activePlanes = [];
-	entities.activeParas = [];
-	entities.activeBullets = [];
-	entities.groundParasL = [];
-	entities.groundParasR = [];
-	entities.bunkerParasL = [];
-	entities.bunkerParasR = [];
+	game.entities.activePlanes = [];
+	game.entities.activeParas = [];
+	game.entities.activeBullets = [];
+	game.entities.groundParasL = [];
+	game.entities.groundParasR = [];
+	game.entities.bunkerParasL = [];
+	game.entities.bunkerParasR = [];
 
 	$('div.overlay .stats').html('');	// Clear previous stats
 	game.statsShown = false;
@@ -841,8 +839,8 @@ var loops = {	// Variables used to manage setInterval loops which run game
 
 		this.driveByCheck = setInterval(function() {		// Make a drive-by occur once per level when the situation is desperate
 			var a = (levelStats.driveBys > 0) ? true : false;
-			var b = (entities.bunkerParasR.length >= 2 || entities.bunkerParasL.length >= 2) ? true : false;
-			var c = (entities.groundParasR.length + entities.groundParasL.length > 4 ) ? true : false;
+			var b = (game.entities.bunkerParasR.length >= 2 || game.entities.bunkerParasL.length >= 2) ? true : false;
+			var c = (game.entities.groundParasR.length + game.entities.groundParasL.length > 4 ) ? true : false;
 			var d = (Math.random() > 0.8) ? true : false;		// 1 in  5 chance
 
 			if (a && b && c && d) {
@@ -887,15 +885,15 @@ function updateStats() {
 	var activeAirParasString = '';
 	var activeGroundParasString = '';
 	var activeBunkerParasString = '';
-	for (var i in entities.activePlanes) activePlanesString += $(entities.activePlanes[i]).attr("id") + ' ';		// build new strings
-	for (var i in entities.activeBullets) activeBulletsString += $(entities.activeBullets[i]).attr("id") + ' ';
-	for (var i in entities.activeParas) activeAirParasString += $(entities.activeParas[i]).attr("id") + ' ';
-	for (var i in entities.groundParasL) activeGroundParasString += $(entities.groundParasL[i]).attr("id") + ' ';
+	for (var i in game.entities.activePlanes) activePlanesString += $(game.entities.activePlanes[i]).attr("id") + ' ';		// build new strings
+	for (var i in game.entities.activeBullets) activeBulletsString += $(game.entities.activeBullets[i]).attr("id") + ' ';
+	for (var i in game.entities.activeParas) activeAirParasString += $(game.entities.activeParas[i]).attr("id") + ' ';
+	for (var i in game.entities.groundParasL) activeGroundParasString += $(game.entities.groundParasL[i]).attr("id") + ' ';
 	activeGroundParasString += '~ ';
-	for (var i in entities.groundParasR) activeGroundParasString += $(entities.groundParasR[i]).attr("id") + ' ';
-	for (var i in entities.bunkerParasL) activeBunkerParasString += $(entities.bunkerParasL[i]).attr("id") + ' ';
+	for (var i in game.entities.groundParasR) activeGroundParasString += $(game.entities.groundParasR[i]).attr("id") + ' ';
+	for (var i in game.entities.bunkerParasL) activeBunkerParasString += $(game.entities.bunkerParasL[i]).attr("id") + ' ';
 	activeBunkerParasString += '~ ';
-	for (var i in entities.bunkerParasR) activeBunkerParasString += $(entities.bunkerParasR[i]).attr("id") + ' ';
+	for (var i in game.entities.bunkerParasR) activeBunkerParasString += $(game.entities.bunkerParasR[i]).attr("id") + ' ';
 	$('#activePlanes').html(activePlanesString);																	// display the strings
 	$('#activeBullets').html(activeBulletsString);
 	$('#activeAirParas').html(activeAirParasString);
@@ -958,7 +956,7 @@ function testAmmo() {
 	if (player.gun.ammo == 0) {
 		setTimeout(function() {
 				// If ammo still zero after 5 seconds, and all moving bullets gone, assume all hope is lost:
-				if (player.gun.ammo == 0 && entities.activeBullets.length == 0) {
+				if (player.gun.ammo == 0 && game.entities.activeBullets.length == 0) {
 					gameOver(3);
 				}
 		}, 5000);
@@ -1013,15 +1011,15 @@ function explodeGun() {
 /*! BULLET FUNCTIONS */
 /*********************/
 function newBullet() {
-	if (entities.activeBullets.length < game.params.maxBullets) {	// room for another bullet?
-		var bulletID = 'bullet' + entities.bid;						// e.g. "bullet33"
+	if (game.entities.activeBullets.length < game.params.maxBullets) {	// room for another bullet?
+		var bulletID = 'bullet' + game.entities.bid;						// e.g. "bullet33"
 
 		var $bullet = $('<div id="'+ bulletID +'"></div>')	// Create bullet element
 					.addClass('bullet')
-					.data("bid",entities.bid)
+					.data("bid",game.entities.bid)
 					.appendTo('#gamefield');				// Add bullet to document
-		entities.activeBullets.push($bullet);				// Register bullet
-		entities.bid++;
+		game.entities.activeBullets.push($bullet);				// Register bullet
+		game.entities.bid++;
 
 		// Shoot the bullet:
 		var XTarget = findTarget(player.gun.angle);
@@ -1044,16 +1042,16 @@ function newBullet() {
 }
 
 function deregisterBullet($bullet) {
-	for (var key in entities.activeBullets) {					// find our expired bullet's index
-		if (entities.activeBullets[key] == $bullet) break;		// WHY DOES THIS MATCH AND NOT FOR PLANES?
+	for (var key in game.entities.activeBullets) {					// find our expired bullet's index
+		if (game.entities.activeBullets[key] == $bullet) break;		// WHY DOES THIS MATCH AND NOT FOR PLANES?
 	}
-	entities.activeBullets.splice(key,1);							// remove the expired bullet
+	game.entities.activeBullets.splice(key,1);							// remove the expired bullet
 	updateStats();
 }
 
 function resumeBullets() {					// Restart bullets on unpause
-	for (var i in entities.activeBullets) {
-		var $bullet = $(entities.activeBullets[i]);	// Get bullet from DOM
+	for (var i in game.entities.activeBullets) {
+		var $bullet = $(game.entities.activeBullets[i]);	// Get bullet from DOM
 		var XTarget = $bullet.data("XTarget");		// Read its target
 		var y = parseInt($bullet.css("top"));		// Read its y-coord
 		var oldTime = $bullet.data("bulletTime");	// Read its old travel time
@@ -1122,9 +1120,9 @@ function grenade(side) {
 }
 
 function killGPs(groundzero) {
-	var groundParas =  entities.groundParasR.concat(entities.groundParasL)
-											.concat(entities.bunkerParasR)
-											.concat(entities.bunkerParasL);
+	var groundParas =  game.entities.groundParasR.concat(game.entities.groundParasL)
+											.concat(game.entities.bunkerParasR)
+											.concat(game.entities.bunkerParasL);
 	for (var i in groundParas) {
 		var $para = groundParas[i];
 		var x = $para.position().left;
@@ -1143,27 +1141,27 @@ function killGPs(groundzero) {
 
 // Use this directly after grenade, driveby, plane crash...
 function rebuildGroundArrays() {			// After slaughterings, rebuild the 4 arrays from scratch (easier than splicing)
-	entities.groundParasR = [];				// Clear all the arrays
-	entities.groundParasL = [];
-	entities.bunkerParasR = [];
-	entities.bunkerParasL = [];
+	game.entities.groundParasR = [];				// Clear all the arrays
+	game.entities.groundParasL = [];
+	game.entities.bunkerParasR = [];
+	game.entities.bunkerParasL = [];
 
 	$('#gamefield div.para.ground').each(function() {		// Get every para on the ground
 		var idpfx = $(this).attr("id").substr(0,6);
 		// Assign him to the correct array:
-		if (idpfx == 'bunker' && $(this).hasClass('left')) entities.bunkerParasL.push($(this));
-		if (idpfx == 'ground' && $(this).hasClass('left')) entities.groundParasL.push($(this));
-		if (idpfx == 'bunker' && $(this).hasClass('right')) entities.bunkerParasR.push($(this));
-		if (idpfx == 'ground' && $(this).hasClass('right')) entities.groundParasR.push($(this));
+		if (idpfx == 'bunker' && $(this).hasClass('left')) game.entities.bunkerParasL.push($(this));
+		if (idpfx == 'ground' && $(this).hasClass('left')) game.entities.groundParasL.push($(this));
+		if (idpfx == 'bunker' && $(this).hasClass('right')) game.entities.bunkerParasR.push($(this));
+		if (idpfx == 'ground' && $(this).hasClass('right')) game.entities.groundParasR.push($(this));
 	});
 	updateStats();
 }
 
 function driveBy() {
 	var $car = $('<div id="car"></div>').appendTo('#gamefield');			// Create the car
-	var allParas = entities.groundParasL.concat(entities.bunkerParasL)
-										.concat(entities.bunkerParasR)
-										.concat(entities.groundParasR);		// All paras to die
+	var allParas = game.entities.groundParasL.concat(game.entities.bunkerParasL)
+										.concat(game.entities.bunkerParasR)
+										.concat(game.entities.groundParasR);		// All paras to die
 
 	var runOverParas = setInterval(function() {
 		for (var i in allParas) {
@@ -1193,15 +1191,15 @@ function driveBy() {
 /*! PLANE FUNCTIONS */
 /********************/
 function newPlane(type) {
-	if (entities.activePlanes.length < game.params.maxPlanesPerLevel[game.level-1]) {		// room for another plane?
+	if (game.entities.activePlanes.length < game.params.maxPlanesPerLevel[game.level-1]) {		// room for another plane?
 		var planeType = game.params.planeTypes[type];
 		var planeSpeed = game.params.planeSpeeds[type];
-		var planeID = planeType + entities.pid;								// Make a unique id e.g. "blimp12"
+		var planeID = planeType + game.entities.pid;								// Make a unique id e.g. "blimp12"
 
 		var $plane = $('<div id="'+planeID+'"></div>')						// Create a new plane element
 			.addClass('plane')
 			.addClass(planeType)											// e.g. "blimp"
-			.data("pid", entities.pid)										// e.g. 12
+			.data("pid", game.entities.pid)										// e.g. 12
 			.data("speed", planeSpeed)										// e.g. 4000
 			.data("type", type)												// e.g. 0
 			.data("planeType", planeType)									// e.g. "blimp"
@@ -1215,8 +1213,8 @@ function newPlane(type) {
 			$plane.addClass('ltr')
 				  .data("dest", "800px");
 		}
-		entities.activePlanes.push($plane);									// Register "blimp12" as active
-		entities.pid++;
+		game.entities.activePlanes.push($plane);									// Register "blimp12" as active
+		game.entities.pid++;
 
 		if (options.sfxEnabled) sounds[planeType].play();
 
@@ -1230,13 +1228,13 @@ function newPlane(type) {
 }
 
 function deregisterPlane($plane) {
-	for (var key in entities.activePlanes) {										// Find our expired plane's index
-		if ($(entities.activePlanes[key]).attr("id") == $plane.attr("id")) break;	// Found it!	// only works matching on IDs
+	for (var key in game.entities.activePlanes) {										// Find our expired plane's index
+		if ($(game.entities.activePlanes[key]).attr("id") == $plane.attr("id")) break;	// Found it!	// only works matching on IDs
 	}
-	entities.activePlanes.splice(key,1);											// Remove the expired plane
+	game.entities.activePlanes.splice(key,1);											// Remove the expired plane
 
 	if (isNaN(key)) {
-		console.log("could not find "+$plane.attr("id")+" in array of "+entities.activePlanes.length+" active planes to deregister");
+		console.log("could not find "+$plane.attr("id")+" in array of "+game.entities.activePlanes.length+" active planes to deregister");
 	}
 	updateStats();
 }
@@ -1249,8 +1247,8 @@ function divePlane($plane) {			// Make Messerschmitts dive and crash
 	var diveLoop = setInterval(function() {			// Detect collisions with airborne paras
 		var x = $plane.position().left + 17;		// Use sprite's centre coords
 		var y = $plane.position().top + 20;
-		for (i in entities.activeParas) {
-			var $para = entities.activeParas[i];
+		for (i in game.entities.activeParas) {
+			var $para = game.entities.activeParas[i];
 			var a = $para.position().left + 10;
 			var b = $para.position().top + 10;
 			if (Math.abs(a-x) < 27 && Math.abs(y-b) < 30) {	// Diving plane touches air para
@@ -1336,8 +1334,8 @@ function explode($obj) {
 }
 
 function resumePlanes() {
-	for (var i in entities.activePlanes) {
-		var $plane = $(entities.activePlanes[i]);	// Get plane from DOM
+	for (var i in game.entities.activePlanes) {
+		var $plane = $(game.entities.activePlanes[i]);	// Get plane from DOM
 		var x = $plane.position().left;				// Get its x-coord
 		var speed = $plane.data("speed");			// Read its speed data
 		var dest = $plane.data("dest");				// Read its destination
@@ -1361,8 +1359,8 @@ function resumePlanes() {
 /*! PARA FUNCTIONS */
 /*******************/
 function newPara($plane) {
-	if (entities.activeParas.length < game.params.maxParasPerLevel[game.level-1]) {				// room for another para?
-		var paraID = 'para' + entities.mid;										// Make a unique id e.g. "para1"
+	if (game.entities.activeParas.length < game.params.maxParasPerLevel[game.level-1]) {				// room for another para?
+		var paraID = 'para' + game.entities.mid;										// Make a unique id e.g. "para1"
 
 		var planeX = $plane.position().left;	// Get plane's coords
 		var planeY = $plane.position().top;
@@ -1370,13 +1368,13 @@ function newPara($plane) {
 		var dropY = (planeY + 15 ) + 'px';
 
 		var $para = $('<div id="'+paraID+'"></div>')		// Create a new para element
-				.data("mid", entities.mid)
+				.data("mid", game.entities.mid)
 				.addClass('para')
 				.addClass('normal')
 				.css({"left":dropX, "top":dropY})			// Give para the coords
 				.prependTo('#gamefield');					// Add him to the document
-		entities.activeParas.push($para);					// Register para
-		entities.mid++;
+		game.entities.activeParas.push($para);					// Register para
+		game.entities.mid++;
 
 		if (planeX > 350 && planeX <= 400) {
 			$para.animate({"left":"-=50px", "top":"+=50px"}, 3000);	// Drift para out of 100px central channel
@@ -1398,8 +1396,8 @@ function newPara($plane) {
 }
 
 function animateParas() {
-	for (i in entities.activeParas) {
-		var $para = entities.activeParas[i];
+	for (i in game.entities.activeParas) {
+		var $para = game.entities.activeParas[i];
 		$para.toggleClass('alt').toggleClass('normal');
 	}
 }
@@ -1432,16 +1430,16 @@ function killPara($para) {
 }
 
 function deregisterPara($para) {
-	for (var key in entities.activeParas) {					// find our expired para's index
-		if (entities.activeParas[key] == $para) break;
+	for (var key in game.entities.activeParas) {					// find our expired para's index
+		if (game.entities.activeParas[key] == $para) break;
 	}
-	entities.activeParas.splice(key,1);						// remove the expired para
+	game.entities.activeParas.splice(key,1);						// remove the expired para
 	updateStats();
 }
 
 function resumeParas() {
-	for (var i in entities.activeParas) {
-		var $para = $(entities.activeParas[i]);				// Get para from DOM
+	for (var i in game.entities.activeParas) {
+		var $para = $(game.entities.activeParas[i]);				// Get para from DOM
 		var y = $para.position().top;						// Get his y-coord
 		var newSpeed = game.params.paraSpeed * (564-y)/564;	// Calculate new drop time
 
@@ -1472,18 +1470,18 @@ function paraLand($para) {
 	if (x < 400) {
 		$para.addClass('left')					// Set his direction
 			   .data("dest","350px");			// And destination
-		entities.groundParasL.push($para);		// Register him in groundParas array
+		game.entities.groundParasL.push($para);		// Register him in groundParas array
 	}
 	else {
 		$para.addClass('right')
 			   .data("dest","440px");
-		entities.groundParasR.push($para);
+		game.entities.groundParasR.push($para);
 	}
 	updateStats();
 }
 
 function walkParas() {
-	var groundParas = entities.groundParasL.concat(entities.groundParasR);
+	var groundParas = game.entities.groundParasL.concat(game.entities.groundParasR);
 	for (var i in groundParas) {
 		var $groundPara = groundParas[i];
 
@@ -1515,30 +1513,30 @@ function reachBunker($groundPara) {
 
 	if($groundPara.hasClass("left")) {
 		var n = null;
-		for (var key in entities.groundParasL) {					// Find the groundPara's index
-			if (entities.groundParasL[key] == $groundPara) n=key;
+		for (var key in game.entities.groundParasL) {					// Find the groundPara's index
+			if (game.entities.groundParasL[key] == $groundPara) n=key;
 		}
-		entities.groundParasL.splice(n,1);							// Remove him from groundParas array
+		game.entities.groundParasL.splice(n,1);							// Remove him from groundParas array
 
-		entities.bunkerParasL.push($groundPara);					// Register him as a bunker para (L)
+		game.entities.bunkerParasL.push($groundPara);					// Register him as a bunker para (L)
 		console.log($groundPara.attr("id") + " arrived at the left bunker");
 	}
 	else if($groundPara.hasClass("right")) {
 		var n = null;
-		for (var key in entities.groundParasR) {					// Find the groundPara's index
-			if (entities.groundParasR[key] == $groundPara) n=key;
+		for (var key in game.entities.groundParasR) {					// Find the groundPara's index
+			if (game.entities.groundParasR[key] == $groundPara) n=key;
 		}
-		entities.groundParasR.splice(n,1);							// Remove him from groundParas array
+		game.entities.groundParasR.splice(n,1);							// Remove him from groundParas array
 
-		entities.bunkerParasR.push($groundPara);					// Register him as a bunker para (R)
+		game.entities.bunkerParasR.push($groundPara);					// Register him as a bunker para (R)
 		console.log($groundPara.attr("id") + " arrived at the right bunker");
 	}
 
 	$groundPara.addClass("bunker");			// Causes his walk cycle to stop being called
 
 	// Make them line up:
-	var bPL = entities.bunkerParasL;
-	var bPR = entities.bunkerParasR;
+	var bPL = game.entities.bunkerParasL;
+	var bPR = game.entities.bunkerParasR;
 	for (var i=0, l=bPL.length; i<l; i++) {
 		bPL[i].css("left",eval(350-(10*i)) + 'px');		// Each new bunkerPara stands 10px back from previous one
 	}
@@ -1548,8 +1546,8 @@ function reachBunker($groundPara) {
 
 	updateStats();
 
-	if (entities.bunkerParasL.length >= player.gun.defence) paraBunkerStorm('left');
-	if (entities.bunkerParasR.length >= player.gun.defence) paraBunkerStorm('right');
+	if (game.entities.bunkerParasL.length >= player.gun.defence) paraBunkerStorm('left');
+	if (game.entities.bunkerParasR.length >= player.gun.defence) paraBunkerStorm('right');
 }
 
 function paraBunkerStorm(side) {
@@ -1558,9 +1556,9 @@ function paraBunkerStorm(side) {
 	if (options.sfxEnabled) sounds.bunkerStorm.play();
 
 	if (side=='right') {
-		$(entities.bunkerParasR[0]).animate({"top":"560px","left":"440px"}, 700, 'linear', function() {
-			$(entities.bunkerParasR[1]).animate({"top":"542px","left":"440px"}, 800, 'linear', function() {
-				$(entities.bunkerParasR[2]).animate({"top":"524px","left":"440px"}, 900, 'linear', function() {
+		$(game.entities.bunkerParasR[0]).animate({"top":"560px","left":"440px"}, 700, 'linear', function() {
+			$(game.entities.bunkerParasR[1]).animate({"top":"542px","left":"440px"}, 800, 'linear', function() {
+				$(game.entities.bunkerParasR[2]).animate({"top":"524px","left":"440px"}, 900, 'linear', function() {
 					var $bullet = $('<div class="bullet"></div>')
 						.css("left","440px")
 						.css("top","525px")
@@ -1574,9 +1572,9 @@ function paraBunkerStorm(side) {
 		});
 	}
 	else if (side=='left') {
-		$(entities.bunkerParasL[0]).animate({"top":"560px","left":"350px"}, 700, 'linear', function() {
-			$(entities.bunkerParasL[1]).animate({"top":"542px","left":"350px"}, 800, 'linear', function() {
-				$(entities.bunkerParasL[2]).animate({"top":"524px","left":"350px"}, 900, 'linear', function() {
+		$(game.entities.bunkerParasL[0]).animate({"top":"560px","left":"350px"}, 700, 'linear', function() {
+			$(game.entities.bunkerParasL[1]).animate({"top":"542px","left":"350px"}, 800, 'linear', function() {
+				$(game.entities.bunkerParasL[2]).animate({"top":"524px","left":"350px"}, 900, 'linear', function() {
 					var $bullet = $('<div class="bullet"></div>')
 						.css("left","360px")
 						.css("top","525px")
@@ -1616,8 +1614,8 @@ function planeGenerator() {		// Generate planes randomly, based on quotas & leve
 function paraGenerator() {		// Generate paras randomly from active planes
 
 	var r = Math.random();
-	if (r < game.params.levelIntensities[game.level-1] && entities.activePlanes.length > 0) {		// 30% to 66% chance we release a new para now
-		var $plane = entities.activePlanes[Math.floor((entities.activePlanes.length)*Math.random())];	// Select an active plane at random
+	if (r < game.params.levelIntensities[game.level-1] && game.entities.activePlanes.length > 0) {		// 30% to 66% chance we release a new para now
+		var $plane = game.entities.activePlanes[Math.floor((game.entities.activePlanes.length)*Math.random())];	// Select an active plane at random
 		newPara($plane);																// Bombs away!
 	}
 }
@@ -1627,8 +1625,8 @@ var planesHit = new Array();	// Stores all planes hit, for exploding en masse a 
 function detectCollisions() {
 
 	// Get each of our bullets one by one:
-	for (var i in entities.activeBullets) {				// 8 bullets max
-		var $bullet = $(entities.activeBullets[i]);
+	for (var i in game.entities.activeBullets) {				// 8 bullets max
+		var $bullet = $(game.entities.activeBullets[i]);
 		var x = $bullet.position().left;
 		var y = $bullet.position().top;
 
@@ -1639,8 +1637,8 @@ function detectCollisions() {
 		}
 
 		// Test against paras first (bullet can pass through them):
-		for (var j in entities.activeParas) {							// 5 paras max
-			var $para = $(entities.activeParas[j]);
+		for (var j in game.entities.activeParas) {							// 5 paras max
+			var $para = $(game.entities.activeParas[j]);
 			var p = $para.position().left;
 			var q = $para.position().top;
 
@@ -1664,8 +1662,8 @@ function detectCollisions() {
 
 		// Test against planes only when bullet is in the plane zone:
 		if (y < 85) {
-			for (var k in entities.activePlanes) {							// 5 planes max
-				var $plane = $(entities.activePlanes[k]);
+			for (var k in game.entities.activePlanes) {							// 5 planes max
+				var $plane = $(game.entities.activePlanes[k]);
 				var a = $plane.position().left;
 				var b = $plane.position().top;
 
@@ -1703,23 +1701,23 @@ function detectCollisions() {
 }
 
 function cleanup() {	// Remove old (frozen?) objects from the screen - bullets, planes, paras(?)
-	for (var i in entities.activeBullets) {				// Problem: the frozen bullets are no longer registered in this array
-		var $bullet = entities.activeBullets[i];
-		if (entities.bid - $bullet.data("bid") > 12) {
+	for (var i in game.entities.activeBullets) {				// Problem: the frozen bullets are no longer registered in this array
+		var $bullet = game.entities.activeBullets[i];
+		if (game.entities.bid - $bullet.data("bid") > 12) {
 			deregisterBullet($bullet);
 			$bullet.remove();
 		}
 	}
-	for (var i in entities.activePlanes) {
-		var $plane = entities.activePlanes[i];
-		if (entities.pid - $plane.data("pid") > game.params.maxPlanesPerLevel[game.level-1] + 2) {	// could give premature removal of slow planes?
+	for (var i in game.entities.activePlanes) {
+		var $plane = game.entities.activePlanes[i];
+		if (game.entities.pid - $plane.data("pid") > game.params.maxPlanesPerLevel[game.level-1] + 2) {	// could give premature removal of slow planes?
 			deregisterPlane($plane);
 			$plane.remove();
 		}
 	}
-	for (var i in entities.activeParas) {
-		var $para = entities.activeParas[i];
-		if (entities.mid - $para.data("mid") > game.params.maxParasPerLevel[game.level-1] + 2) {
+	for (var i in game.entities.activeParas) {
+		var $para = game.entities.activeParas[i];
+		if (game.entities.mid - $para.data("mid") > game.params.maxParasPerLevel[game.level-1] + 2) {
 			deregisterPara($para);
 			$para.remove();
 		}
