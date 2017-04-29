@@ -223,7 +223,7 @@
 	var ui = {
 		showOverlay: function(overlay, type) {
 			if (!($('#overlay').is(':visible'))) {
-				$('#overlay').show().animate({"top":0}, 500, 'linear');
+				$('#overlay').show().velocity({"top":0}, 500, 'linear');
 				//slideDown(800);		// Only animates in if not already visible
 			}
 
@@ -295,7 +295,7 @@
 		},
 
 		hideOverlay: function() {
-			$('#overlay').animate({"top":"-600px"}, 500, 'linear', function() {
+			$('#overlay').velocity({"top":"-600px"}, 500, 'linear', function() {
 				$(this).hide();
 			});
 			//slideUp(800).html('');
@@ -351,10 +351,10 @@
 	var sounds = {		// Empty container for all the sounds to be used
 		click: {url: 'sm2/mp3/click.mp3', volume: 50},
 		introPlane: {url:'sm2/mp3/biplane.mp3', volume:50},
-		blimp: {url:'sm2/mp3/heli1.mp3', volume:50},
-		apache: {url: 'sm2/mp3/heli1.mp3', volume: 50},
-		cobra: {url: 'sm2/mp3/heli1.mp3', volume: 50},
-		hind: {url: 'sm2/mp3/heli1.mp3', volume: 50},
+		blimp: {url:'sm2/mp3/heli1.mp3', volume:70},
+		apache: {url: 'sm2/mp3/heli1.mp3', volume: 80},
+		cobra: {url: 'sm2/mp3/heli1.mp3', volume: 70},
+		hind: {url: 'sm2/mp3/heli1.mp3', volume: 60},
 		messerschmitt: {url: 'sm2/mp3/messerschmitt64.mp3', volume: 50},
 		mig: {url: 'sm2/mp3/mig.mp3', volume: 50},
 		tomcat: {url: 'sm2/mp3/tomcat.mp3', volume: 50},
@@ -485,7 +485,7 @@
 	shop.showMessage = function(string) {
 		$('#shop h5').html(string)
 					 .slideDown(500)
-					 .animate({"opacity":1}, 2000, function() {
+					 .velocity({"opacity":1}, 2000, function() {
 					 	$(this).fadeOut(500);
 					 });
 	};
@@ -533,7 +533,7 @@
 		playSound('introPlane');
 		var $biplane = $('<div id="introplane"><span class="level'+n+'"></span></div>');
 		$biplane.prependTo('#gamefield')
-				.animate({"left":"-250px"}, 5000, 'linear', function() {
+				.velocity({"left":"-250px"}, 5000, 'linear', function() {
 					$(this).remove();
 					game.state = 'running';
 					runGame();	// start the level action!
@@ -746,10 +746,10 @@
 
 	function explodeGun() {
 		playSound('explosion');
-		game.state = '';									// Disable key input
+		game.state = '';							// Disable key input
 		$('#gun').removeClass()
-			     .animate({"left":"-=12px"}, 1)			// Shift left to accommodate explosion sprite
-				 .fadeOut(2000, function() {			// Fade out (takes longer than explode animation)
+			     .css({"left":"-=12px"})			// Shift left to accommodate explosion sprite
+				 .fadeOut(2000, function() {		// Fade out (takes longer than explode animation)
 						gameOver(2);
 				 });
 		explode($('#gun'));
@@ -773,10 +773,11 @@
 			// Shoot the bullet:
 			var XTarget = findTarget(player.gun.angle);
 			var bulletTime = (548/Math.abs(Math.cos((player.gun.angle-90)*Math.PI/180)))/game.params.bulletSpeed;	// Bullet animation time = distance over speed
+			console.log(XTarget, bulletTime);
 
 			$bullet.data("XTarget", XTarget)												// Attach its target info
 				   .data("bulletTime", bulletTime)											// Attach its total travel time
-				   .data("hits",0)
+				   .data("hits", 0)
 				   .animate({"top":"0","left":XTarget}, bulletTime, "linear", function() {	// Move the bullet
 						$(this).remove();													// When anim finishes, remove bullet
 						deregisterBullet(this);
@@ -800,13 +801,12 @@
 
 	function resumeBullets() {					// Restart bullets on unpause
 		for (var $bullet of game.entities.activeBullets) {
-			//var $bullet = $(game.entities.activeBullets[i]);	// Get bullet from DOM
 			var XTarget = $bullet.data("XTarget");		// Read its target
 			var y = parseInt($bullet.css("top"));		// Read its y-coord
 			var oldTime = $bullet.data("bulletTime");	// Read its old travel time
 			var newTime = oldTime * y/548;				// Calculate the new travel time
 
-			$bullet.animate({"top":"0","left":XTarget}, newTime, "linear", function() {	// Re-animate the bullet
+			$bullet.velocity({"top":"0","left":XTarget}, newTime, "linear", function() {	// Re-animate the bullet
 				$(this).remove();														// When anim finishes, remove bullet
 				deregisterBullet(this);
 			});
@@ -878,10 +878,6 @@
 			generatePara();
 		}, 2500);
 
-		this.paraFall = setInterval(function() {			// Falling paras animate every second
-			animateParas();
-		}, 1000);
-
 		this.paraWalk = setInterval(function() {			// Ground paras walk every second
 			walkParas();
 		}, 1000);
@@ -945,7 +941,6 @@
 	function detectCollisions() {
 		// Get each of our bullets one by one:
 		for (var $bullet of game.entities.activeBullets) {				// 8 bullets max
-			//var $bullet = $(game.entities.activeBullets[i]);
 			var x = $bullet.position().left;
 			var y = $bullet.position().top;
 
@@ -957,7 +952,6 @@
 
 			// Test against paras first (bullet can pass through them):
 			for (var $para of game.entities.activeParas) {							// 5 paras max
-				//var $para = $(game.entities.activeParas[j]);
 				var p = $para.position().left;
 				var q = $para.position().top;
 
@@ -982,7 +976,6 @@
 			// Test against planes only when bullet is in the plane zone:
 			if (y < 85) {
 				for (var $plane of game.entities.activePlanes) {							// 5 planes max
-					//var $plane = $(game.entities.activePlanes[k]);
 					var a = $plane.position().left;
 					var b = $plane.position().top;
 
@@ -1076,7 +1069,7 @@
 			playSound(planeType);
 
 			var dest = $plane.data("dest");
-			$plane.animate({"left": dest}, planeSpeed, "linear", function() {	// Start it moving
+			$plane.velocity({"left": dest}, planeSpeed, "linear", function() {	// Start it moving
 				deregisterPlane($plane);
 				$(this).remove();												// When anim finishes, remove it
 			});
@@ -1106,7 +1099,6 @@
 			var x = $plane.position().left + 17;		// Use sprite's centre coords
 			var y = $plane.position().top + 20;
 			for (var $para of game.entities.activeParas) {
-				//var $para = game.entities.activeParas[i];
 				var a = $para.position().left + 10;
 				var b = $para.position().top + 10;
 				if (Math.abs(a-x) < 27 && Math.abs(y-b) < 30) {	// Diving plane touches air para
@@ -1120,7 +1112,7 @@
 
 		$plane.stop(true)	// clearQueue on
 			  .addClass('diving')				// Needs to dive from y=60 to y=542
-			  .animate({"top":"558px", "left":dest+'px'}, 1000, 'linear', function() {	// Dive
+			  .velocity({"top":"558px", "left":dest+'px'}, 1000, 'linear', function() {	// Dive
 					clearInterval(diveLoop);	// Stop detection of air paras
 					killGPs(dest);				// Kill the paras it landed on
 
@@ -1192,13 +1184,12 @@
 
 	function resumePlanes() {
 		for (var $plane of game.entities.activePlanes) {
-			//var $plane = $(game.entities.activePlanes[i]);	// Get plane from DOM
 			var x = $plane.position().left;				// Get its x-coord
 			var speed = $plane.data("speed");			// Read its speed data
 			var dest = $plane.data("dest");				// Read its destination
 			var newTime = ($plane.hasClass('ltr')) ? speed * (800-x)/800 : speed * (x/800);
 
-			$plane.animate({"left": dest}, newTime, 'linear', function() {	// Re-animate the plane
+			$plane.velocity({"left": dest}, newTime, 'linear', function() {	// Re-animate the plane
 				$plane.remove();
 				deregisterPlane($plane);
 			});
@@ -1221,35 +1212,28 @@
 			var $para = $('<div id="'+paraID+'"></div>')		// Create a new para element
 					.data("mid", game.entities.mid)
 					.addClass('para')
-					.addClass('normal')
+					.addClass('floating')
 					.css({"left":dropX, "top":dropY})			// Give para the coords
 					.prependTo('#gamefield');					// Add him to the document
 			game.entities.activeParas.push($para);					// Register para
 			game.entities.mid++;
 
 			if (planeX > 350 && planeX <= 400) {
-				$para.animate({"left":"-=50px", "top":"+=50px"}, 3000);	// Drift para out of 100px central channel
+				$para.velocity({"left":"-=50px", "top":"+=50px"}, 3000);	// Drift para out of 100px central channel
 			}
 			if (planeX > 400 && planeX < 440) {
-				$para.animate({"left":"+=50px", "top":"+=50px"}, 3000);
+				$para.velocity({"left":"+=50px", "top":"+=50px"}, 3000);
 			}
 			if (planeX > 790) {
-				$para.animate({"left":"-=50px", "top":"+=50px"}, 3000);	// Drift away from screen edges
+				$para.velocity({"left":"-=50px", "top":"+=50px"}, 3000);	// Drift away from screen edges
 			}
 			if (planeX < 10 || isNaN(planeX)) {
-				$para.animate({"left":"+=50px", "top":"+=50px"}, 3000);
+				$para.velocity({"left":"+=50px", "top":"+=50px"}, 3000);
 			}
 
-			$para.animate({"top":"564px"}, game.params.paraSpeed, "linear", function() {	// Drop him
+			$para.velocity({"top":"564px"}, game.params.paraSpeed, "linear", function() {	// Drop him
 				paraLand($para);
 			});
-		}
-	}
-
-	function animateParas() {
-		for (var $para of game.entities.activeParas) {
-			//var $para = game.entities.activeParas[i];
-			$para.toggleClass('alt').toggleClass('normal');
 		}
 	}
 
@@ -1265,14 +1249,9 @@
 		}
 
 		$para.stop(true)	// clearQueue enabled - terminates any earlier animation and guarantees his removal
-			 .removeClass('normal')
-			 .removeClass('alt')
-			 .addClass('shot1')
-			 .animate({"top":"+=2px"}, 200, function() {	// His death animation
-				$(this).removeClass('shot1')
-					   .addClass('shot2');
-			 })
-			 .animate({"top":"+=2px"}, 200, function() {
+			 .removeClass('floating')
+			 .addClass('shot')
+			 .animate({"top":"+=2px"}, 500, function() {
 				$(this).remove();
 			 });
 		updateStats();
@@ -1288,11 +1267,10 @@
 
 	function resumeParas() {
 		for (var $para of game.entities.activeParas) {
-			//var $para = $(game.entities.activeParas[i]);				// Get para from DOM
 			var y = $para.position().top;						// Get his y-coord
 			var newSpeed = game.params.paraSpeed * (564-y)/564;	// Calculate new drop time
 
-			$para.animate({"top":"564px"}, newSpeed, 'linear', function() {
+			$para.velocity({"top":"564px"}, newSpeed, 'linear', function() {
 				if ($para.position().top === 564) paraLand($para);		// Now he can land
 			});
 		}
@@ -1310,10 +1288,8 @@
 		deregisterPara($para);						// Deregister from paras
 		game.levelStats.landedParas++;
 
-		$para.removeClass('normal')					// Convert para to a groundPara
-			   .removeClass('alt')
+		$para.removeClass('floating')					// Convert para to a groundPara
 			   .addClass('ground')
-			   .addClass('step1')
 			   .attr("id", groundParaID);			// Set his new id
 
 		if (x < 400) {
@@ -1332,7 +1308,6 @@
 	function walkParas() {
 		var groundParas = game.entities.groundParasL.concat(game.entities.groundParasR);
 		for (var $groundPara of groundParas) {
-			//var $groundPara = groundParas[i];
 
 			var pos = $groundPara.position().left;
 			var dest = parseInt($groundPara.data("dest"));
@@ -1341,15 +1316,11 @@
 				reachBunker($groundPara);						// He's allowed to reach the bunker
 			}
 			else {												// Else keep walking...
-				if($groundPara.hasClass("left")) {										// If he's on the left,
-					$groundPara.animate({"left":"+=2px"}, 200, function() {				// Walk right
-						   $(this).toggleClass('step1').toggleClass('step2');
-					});
+				if ($groundPara.hasClass("left")) {							// If he's on the left, walk right
+					$groundPara.velocity({"left":"+=3px"}, 200);
 				}
-				if($groundPara.hasClass("right")) {										// If he's on the right,
-					$groundPara.animate({"left":"-=2px"}, 200, function() {				// Walk left
-						   $(this).toggleClass('step1').toggleClass('step2');
-					});
+				else if ($groundPara.hasClass("right")) {							// If he's on the right, walk left
+					$groundPara.velocity({"left":"-=3px"}, 200);
 				}
 			}
 		}
@@ -1405,14 +1376,14 @@
 		playSound('bunkerStorm');
 
 		if (side === 'right') {
-			$(game.entities.bunkerParasR[0]).animate({"top":"560px","left":"440px"}, 700, 'linear', function() {
-				$(game.entities.bunkerParasR[1]).animate({"top":"542px","left":"440px"}, 800, 'linear', function() {
-					$(game.entities.bunkerParasR[2]).animate({"top":"524px","left":"440px"}, 900, 'linear', function() {
+			$(game.entities.bunkerParasR[0]).velocity({"top":"560px","left":"440px"}, 700, 'linear', function() {
+				$(game.entities.bunkerParasR[1]).velocity({"top":"542px","left":"440px"}, 800, 'linear', function() {
+					$(game.entities.bunkerParasR[2]).velocity({"top":"524px","left":"440px"}, 900, 'linear', function() {
 						$('<div class="bullet"></div>')
 							.css("left","440px")
 							.css("top","525px")
 							.appendTo('#gamefield')
-							.animate({"left":"400px"}, 1000, 'linear', function() {		// Fire a bullet at the gun
+							.velocity({"left":"400px"}, 1000, 'linear', function() {		// Fire a bullet at the gun
 								$(this).remove();
 								explodeGun();
 							});
@@ -1421,14 +1392,14 @@
 			});
 		}
 		else if (side === 'left') {
-			$(game.entities.bunkerParasL[0]).animate({"top":"560px","left":"350px"}, 700, 'linear', function() {
-				$(game.entities.bunkerParasL[1]).animate({"top":"542px","left":"350px"}, 800, 'linear', function() {
-					$(game.entities.bunkerParasL[2]).animate({"top":"524px","left":"350px"}, 900, 'linear', function() {
+			$(game.entities.bunkerParasL[0]).velocity({"top":"560px","left":"350px"}, 700, 'linear', function() {
+				$(game.entities.bunkerParasL[1]).velocity({"top":"542px","left":"350px"}, 800, 'linear', function() {
+					$(game.entities.bunkerParasL[2]).velocity({"top":"524px","left":"350px"}, 900, 'linear', function() {
 						$('<div class="bullet"></div>')
 							.css("left","360px")
 							.css("top","525px")
 							.appendTo('#gamefield')
-							.animate({"left":"400px"}, 1000, 'linear', function() {		// Fire a bullet at the gun
+							.velocity({"left":"400px"}, 1000, 'linear', function() {		// Fire a bullet at the gun
 								$(this).remove();
 								explodeGun();
 							});
@@ -1447,11 +1418,11 @@
 
 		var $nade = $('<div class="grenade"></div>')			// Create the grenade
 						.appendTo('#gamefield')					// Add it to document
-						.animate({"left":target,"bottom":"+=30px"}, 250, "swing", function() {				// y upwards
-			   				$(this).animate({"left":target,"bottom":"18px"}, 200, "swing", function() {		// y downwards
+						.velocity({"left":target,"bottom":"+=30px"}, 250, "swing", function() {				// y upwards
+			   				$(this).velocity({"left":target,"bottom":"18px"}, 200, "swing", function() {		// y downwards
 								playSound('explosion');
 								killGPs($nade.position().left);
-								$nade.animate({"left":"-=24px"}, 1, function() {	// shift to accommodate explosion sprite
+								$nade.velocity({"left":"-=24px"}, 1, function() {	// shift to accommodate explosion sprite
 									explode($nade);
 								});
 							});
@@ -1462,11 +1433,10 @@
 	}
 
 	function killGPs(groundzero) {
-		var groundParas =  game.entities.groundParasR.concat(game.entities.groundParasL)
-												.concat(game.entities.bunkerParasR)
-												.concat(game.entities.bunkerParasL);
+		var groundParas = game.entities.groundParasR.concat(game.entities.groundParasL)
+													.concat(game.entities.bunkerParasR)
+													.concat(game.entities.bunkerParasL);
 		for (var $para of groundParas) {
-			//var $para = groundParas[i];
 			var x = $para.position().left;
 			if (x <= groundzero+20 && x >= groundzero-20) {	// If he's in the blast zone,
 				console.log($para.attr("id")+" is going home in a plastic bag.");
@@ -1506,7 +1476,6 @@
 
 		var runOverParas = setInterval(function() {
 			for (var $para of allParas) {
-				//var $para = $(allParas[i]);							// Get the para object
 				var pos = parseInt($para.css("left"));				// Get the para coord
 				var carPos = parseInt($car.css("left"));			// Get the car coord
 
@@ -1518,7 +1487,7 @@
 		}, 75);				// when driveBy() is called, run collision detection every 75ms
 
 		console.log("Car start");
-		$car.animate({"left":"800px"}, 2000, 'linear', function() {		// Drive the car
+		$car.velocity({"left":"800px"}, 2000, 'linear', function() {		// Drive the car
 			$(this).remove();
 			console.log("Car end");
 			clearInterval(runOverParas);									// Screen traversed, stop detecting collisions
@@ -1629,7 +1598,7 @@
 
 		// Start game from title screen:
 		$('img#title').click(function() {
-			$(this).animate({"top":"-=600px"}, 500, 'linear', function() {
+			$(this).velocity({"top":"-=600px"}, 500, 'linear', function() {
 				updateStats();
 				ui.showOverlay('menu');
 			});
@@ -1647,13 +1616,13 @@
 			shop.buyItem(item);
 		});
 
-		// Volume widget:
+/*		// Volume widget:
 		$('#volumewidget').hover(function() {
-			$(this).stop().animate({"height":"35px","width":"50px"});		// Hover = grow widget
+			$(this).stop().velocity({"height":"35px","width":"50px"});		// Hover = grow widget
 		}, function() {
-			$(this).stop().animate({"height":"11px","width":"11px"});		// Mouseout = shrink it
+			$(this).stop().velocity({"height":"11px","width":"11px"});		// Mouseout = shrink it
 		});
-
+*/
 
 		/**********/
 		/*! INPUT */

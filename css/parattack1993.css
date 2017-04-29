@@ -71,8 +71,8 @@
 	height:42px;
 	position:absolute;
 	top:260px;
-	left:800px;	
-	background: transparent url(../img/sprites2.png) no-repeat;	
+	left:800px;
+	background: transparent url(../img/sprites2.png) no-repeat;
 }
 
 #introplane span {
@@ -103,7 +103,7 @@
 	position:absolute;
 	width:48px;
 	background: transparent url(../img/sprites.png) no-repeat;
-	z-index:1;	
+	z-index:1;
 }
 .blimp {
 	top: 30px;		/* Flight altitude */
@@ -168,7 +168,7 @@
 	height:19px;
 	width:27px;
 	background: transparent url(../img/sprites.png) no-repeat;
-	z-index:3;	
+	z-index:3;
 }
 
 .combo.p125 {background-position: -152px -180px;}
@@ -186,22 +186,42 @@
 	height: 20px;
 	background: transparent url(../img/sprites.png) no-repeat;
 	z-index:1;
+	background-position: 0 -165px;
 }
-.normal {background-position: 0 -165px;}
-.alt {background-position: -22px -165px;} /* 2-frame animation */
-
-.shot1 {background-position: -44px -165px;}
-.shot2 {background-position: -66px -165px;} /* 2-frame animation */
-
-.ground {
+.para.floating {
+	animation: para-float 1s steps(1, start) infinite;
+}
+@keyframes para-float {
+	from, to  {background-position: 0 -165px;}
+	50%   {background-position: -22px -165px;}
+}
+.para.shot {
+	animation: para-shot 1s steps(1, start) 1;
+}
+@keyframes para-shot {
+	from, to {background-position: -44px -165px;}
+	50%   {background-position: -66px -165px;}
+}
+.para.ground {
 	height: 16px;
-	width:12px;
+	width: 12px;
 }
-
-.left.step1 {background-position: 0 -190px;}
-.left.step2 {background-position: -14px -190px;}
-.right.step1 {background-position: -28px -190px;}
-.right.step2 {background-position: -42px -190px;}
+.para.ground.left {
+	background-position: 0 -190px;
+	animation: para-walk-ltr 1s steps(1, start) infinite;
+}
+.para.ground.right {
+	background-position: -28px -190px;
+	animation: para-walk-rtl 1s steps(1, start) infinite;
+}
+@keyframes para-walk-ltr {
+	from, to {background-position: 0 -190px;}
+	50%   {background-position: -14px -190px;}
+}
+@keyframes para-walk-rtl {
+	from, to {background-position: -28px -190px;}
+	50%   {background-position: -42px -190px;}
+}
 
 /**********/
 /* PLAYER */
@@ -283,7 +303,7 @@
 	height: 8px;
 	width:8px;
 	background: transparent url(../img/sprites.png) no-repeat;
-	background-position: -80px -194px;	
+	background-position: -80px -194px;
 	float:left;
 	margin:2px;
 }
@@ -304,7 +324,7 @@
 	width:38px;
 	height:18px;
 	background: transparent url(../img/sprites.png) no-repeat;
-	background-position: 0 -145px;	
+	background-position: 0 -145px;
 	left:0;
 	bottom: 18px;
 	z-index: 4;

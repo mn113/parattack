@@ -184,8 +184,12 @@ a.option.disabled:hover {
 	background: #333;
 	overflow:hidden;
 	padding:3px;
-	display:none;
 	z-index:9;
+	transition: width 1s, height 1s;
+}
+#volumewidget:hover {
+	width: 50px;
+	height: 35px;
 }
 
 #volumewidget a, #volumewidget span {
@@ -241,5 +245,5 @@ p[id^=active] {
 }
 
 #debug2 {
-	xdisplay:none;
+	display:none;
 }
