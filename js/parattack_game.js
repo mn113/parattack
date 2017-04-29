@@ -350,32 +350,33 @@
 	/****************/
 	var sounds = {		// Empty container for all the sounds to be used
 		click: {url: 'sm2/mp3/click.mp3', volume: 50},
-		introPlane: {url:'sm2/mp3/biplane.mp3', volume:50},
-		blimp: {url:'sm2/mp3/heli1.mp3', volume:70},
-		apache: {url: 'sm2/mp3/heli1.mp3', volume: 80},
-		cobra: {url: 'sm2/mp3/heli1.mp3', volume: 70},
-		hind: {url: 'sm2/mp3/heli1.mp3', volume: 60},
-		messerschmitt: {url: 'sm2/mp3/messerschmitt64.mp3', volume: 50},
-		mig: {url: 'sm2/mp3/mig.mp3', volume: 50},
-		tomcat: {url: 'sm2/mp3/tomcat.mp3', volume: 50},
-		bullet: {url: 'sm2/mp3/bullet.mp3', volume: 50},
-		explosion: {url: 'sm2/mp3/boom.mp3', volume: 50},
-		paraHit1: {url: 'sm2/mp3/aiiee.mp3', volume: 50},
-		paraHit2: {url: 'sm2/mp3/augh.mp3', volume: 50},
-		splat1: {url: 'sm2/mp3/splat1.mp3', volume: 40},
-		splat2: {url: 'sm2/mp3/splat2.mp3', volume: 40},
-		splatargh: {url: 'sm2/mp3/splatargh.mp3', volume: 40},
-		dive: {url: 'sm2/mp3/stukadive1sec.mp3', volume: 50},
-		combo1: null,
-		combo2: null,
-		grenade: null,
-		driveby: null,
-		bunkerStorm: {url: 'sm2/mp3/bugle.mp3', volume: 50},	// bugle64.mp3
-		victory: null,
-		gameover: null,
+		introPlane: {url:'sm2/mp3/planes/biplane.mp3', volume:50},
+		blimp: {url:'sm2/mp3/planes/heli1.mp3', volume:80},
+		apache: {url: 'sm2/mp3/planes/chopper.mp3', volume: 50},
+		cobra: {url: 'sm2/mp3/planes/seaking64.mp3', volume: 50},
+		hind: {url: 'sm2/mp3/planes/hovercopter.mp3', volume: 50},
+		messerschmitt: {url: 'sm2/mp3/planes/messerschmitt64.mp3', volume: 50},
+		mig: {url: 'sm2/mp3/planes/mig.mp3', volume: 50},
+		tomcat: {url: 'sm2/mp3/planes/tomcat.mp3', volume: 50},
+		dive: {url: 'sm2/mp3/planes/stukadive1sec.mp3', volume: 50},
+		bullet: {url: 'sm2/mp3/bullet64.mp3', volume: 50},
+		combo1: {url: 'sm2/mp3/combo1.mp3', volume: 40},
+		combo2: {url: 'sm2/mp3/combo2.mp3', volume: 40},
+		explosion: {url: 'sm2/mp3/boom64.mp3', volume: 50},
+		explosion2: {url: 'sm2/mp3/fireball.mp3', volume: 50},
+		paraHit1: {url: 'sm2/mp3/human/aiiee64.mp3', volume: 50},
+		paraHit2: {url: 'sm2/mp3/human/augh64.mp3', volume: 50},
+		splat1: {url: 'sm2/mp3/human/splat1.mp3', volume: 40},
+		splat2: {url: 'sm2/mp3/human/splat2.mp3', volume: 40},
+		splatargh: {url: 'sm2/mp3/human/splatargh.mp3', volume: 40},
+		grenade: {url: 'sm2/mp3/human/fire_in_the_hole.ogg', volume: 50},
+		driveby: {url: 'sm2/mp3/car_driveby.mp3', volume: 50, start: 2},
+		bunkerStorm: {url: 'sm2/mp3/bugle64.mp3', volume: 50},
+		victory: {url: 'sm2/mp3/music/BrassVictory.mp3', volume: 50},
+		gameover: {url: 'sm2/mp3/loss.mp3', volume: 50},
 		music: {
-			1: null,
-			2: null,
+			1: {url: 'sm2/mp3/music/musical078.mp3', volume: 50},
+			2: {url: 'sm2/mp3/music/HeroicDemise.mp3', volume: 50},
 			3: null
 		}
 	};
@@ -398,7 +399,7 @@
 		if (!game.options.sfxEnabled) return;
 		var snd = new Audio(sounds[sound].url); 	// buffers automatically when created
 		snd.volume = (game.volume + sounds[sound].volume) / 100;
-		snd.currentTime = 0;
+		snd.currentTime = sounds[sound].start || 0;
 		snd.play();
 	}
 
@@ -609,9 +610,11 @@
 
 		if (reason === 1) {										// reason 1 = victory (reached required kills total)
 			var type = (game.levelStats.landedParas === 0) ? 1 : 0;		// victory type 1 = flawless victory (no landings)
+			playSound('victory');
 			ui.showOverlay('victory', type);
 		}
 		else {
+			playSound('gameover');
 			ui.showOverlay('gameover', reason);
 		}
 	}
@@ -816,6 +819,8 @@
 	function showCombo(x,y,hits) {
 		$('.combo').remove();								// Clear all previous combo icons
 		var points = game.params.comboPoints[(hits-1)%4];	// 125, 250, 500 or 750
+		if (points <= 125) playSound('combo1');
+		else playSound('combo2');
 		var $comboHtml = $('<div class="combo"></div>');
 		$comboHtml.addClass('p'+points)
 				  .prependTo('#gamefield')
@@ -825,7 +830,7 @@
 		game.levelStats.comboScore += points;
 	}
 
-	function testComboChain(hid) {
+	function measureComboChain(hid) {
 		// example comboChain array: (1,2,3) <- 4 comes in
 		game.levelStats.comboChain.push(hid);							// Add the new hitting bullet ID
 		var comboSize;
@@ -997,7 +1002,7 @@
 
 							// Combo test:
 							var hid = $bullet.data("bid");							// hitID
-							var comboSize = testComboChain(hid);					// Test the hitID for combos
+							var comboSize = measureComboChain(hid);					// Test the hitID for combos
 							if (comboSize > 0) {
 								showCombo(x,y, comboSize);
 								console.log("COMBOOOO! ("+comboSize+")");
