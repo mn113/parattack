@@ -12,7 +12,7 @@
 */
 
 // Game IIFE
-(function($) {
+var Parattack = (function($) {
 
 	var game = {	// Holds misc vars
 		state: '',
@@ -374,12 +374,11 @@
 		bunkerStorm: {url: 'sm2/mp3/bugle64.mp3', volume: 50},
 		victory: {url: 'sm2/mp3/music/BrassVictory.mp3', volume: 50},
 		gameover: {url: 'sm2/mp3/loss.mp3', volume: 50},
-		music: {
-			1: {url: 'sm2/mp3/music/musical078.mp3', volume: 50},
-			2: {url: 'sm2/mp3/music/HeroicDemise.mp3', volume: 50},
-			3: null
-		}
+		music1: {url: 'sm2/mp3/music/musical078.mp3', volume: 50},
+		music2: {url: 'sm2/mp3/music/HeroicDemise.mp3', volume: 50}
 	};
+
+	var activeSounds = [];
 
 	function adjustGameVolume(incr) {	// Normally -10 or +10
 		// Master volume:
@@ -397,10 +396,23 @@
 
 	function playSound(sound) {
 		if (!game.options.sfxEnabled) return;
-		var snd = new Audio(sounds[sound].url); 	// buffers automatically when created
+		var snd = new Audio(sounds[sound].url); 	// Audio buffers automatically when created
+		activeSounds.push(snd);					// store it for later access
 		snd.volume = (game.volume + sounds[sound].volume) / 100;
 		snd.currentTime = sounds[sound].start || 0;
 		snd.play();
+	}
+
+	function pauseAllSounds() {
+		for (var sound of activeSounds) {
+			if (!sound.ended && !sound.paused) sound.pause();
+		}
+	}
+
+	function unpauseAllSounds() {
+		for (var sound of activeSounds) {
+			if (!sound.ended && sound.paused) sound.play();
+		}
 	}
 
 
@@ -553,8 +565,8 @@
 
 	function pause() {
 		levelTimer.stop();
-		$('#gamefield div').stop();		// stop everything moving
-		//sm2.pauseAll();	//TODO: pause & resume HTML5 sounds?
+		$('#gamefield div').velocity('stop');		// stop everything moving
+		pauseAllSounds();
 		game.state = 'paused';
 
 		// Clear generators & animators
@@ -566,13 +578,14 @@
 	}
 
 	function unpause() {
-		//sm2.resumeAll();
+		unpauseAllSounds();
 		game.state = 'running';
 
 		// Restart generators & animators & timer:
 		runGame();
 
-		resumeBullets();				// Set everything moving again
+		// Set everything moving again:
+		resumeBullets();
 		resumePlanes();
 		resumeParas();
 		// resumeParaWalk();
@@ -588,7 +601,7 @@
 	*/
 	function gameOver(reason) {
 		game.levelStats.levelTime = levelTimer.stop();	// Stop the stopwatch (total seconds)
-		$('#gamefield div').stop();						// Stop everything moving
+		$('#gamefield div').velocity('stop', true);			// Stop everything moving
 		game.state = 'between';
 		//sm2.stopAll();
 
@@ -705,7 +718,7 @@
 		return ammoString; // formatted as 4-character number string e.g. '0001'
 	}
 
-	function testAmmo() {
+	function testAmmoDepletion() {
 		if (player.gun.ammo === 0) {
 			setTimeout(function() {
 					// If ammo still zero after 5 seconds, and all moving bullets gone, assume all hope is lost:
@@ -717,11 +730,11 @@
 	}
 
 	function updateGunAngle(increment) {
-		if (player.gun.angle + increment >= 0 && player.gun.angle + increment <= 180) {	// stay within bounds of 15 - 165 degrees
+		if (player.gun.angle + increment >= 0 && player.gun.angle + increment <= 180) {		// stay within bounds of 15 - 165 degrees
 			player.gun.angle += increment;
 		}
 
-		var $gun = $('#gun');		// select gun
+		var $gun = $('#gun');
 		$gun.removeClass();		// remove all gun's classes
 		if (player.gun.angle>=0 && player.gun.angle<7.5) $gun.addClass('angle0');
 		else if (player.gun.angle>=7.5 && player.gun.angle<22.5) $gun.addClass('angle15');
@@ -743,7 +756,10 @@
 	}
 
 	function findTarget(gunAngle) {
+		if (gunAngle === 0) gunAngle = 1;		// Avoid infinity calculations
+		if (gunAngle === 180) gunAngle = 179;
 		var XTarget = Math.round(400 + (548 * Math.tan((gunAngle-90)*Math.PI/180)));		// calculate target x-coord
+		console.log(gunAngle, XTarget);
 		return XTarget;
 	}
 
@@ -764,32 +780,38 @@
 	/*********************/
 	function newBullet() {
 		if (game.entities.activeBullets.length < game.params.maxBullets) {	// room for another bullet?
-			var bulletID = 'bullet' + game.entities.bid;						// e.g. "bullet33"
+			var bulletID = 'bullet' + game.entities.bid;					// e.g. "bullet33"
 
 			var $bullet = $('<div id="'+ bulletID +'"></div>')	// Create bullet element
 						.addClass('bullet')
 						.data("bid",game.entities.bid)
 						.appendTo('#gamefield');				// Add bullet to document
-			game.entities.activeBullets.push($bullet);				// Register bullet
+			game.entities.activeBullets.push($bullet);			// Register bullet
 			game.entities.bid++;
 
-			// Shoot the bullet:
+			// Prepare the bullet:
 			var XTarget = findTarget(player.gun.angle);
 			var bulletTime = (548/Math.abs(Math.cos((player.gun.angle-90)*Math.PI/180)))/game.params.bulletSpeed;	// Bullet animation time = distance over speed
-			console.log(XTarget, bulletTime);
+			var target = {"top":"1px", "left":XTarget};
+			$bullet.data("XTarget", XTarget)			// Attach its target info
+				   .data("bulletTime", bulletTime)		// Attach its total travel time
+				   .data("hits", 0);
 
-			$bullet.data("XTarget", XTarget)												// Attach its target info
-				   .data("bulletTime", bulletTime)											// Attach its total travel time
-				   .data("hits", 0)
-				   .animate({"top":"0","left":XTarget}, bulletTime, "linear", function() {	// Move the bullet
-						$(this).remove();													// When anim finishes, remove bullet
-						deregisterBullet(this);
-				   });
+			// Change trajectory for horizontal bullets:
+			if (XTarget > 10000 || XTarget < -10000) {
+				target = {"left":XTarget};
+				bulletTime = (Math.abs(XTarget)-400)/game.params.bulletSpeed;
+			}
+			// Move bullet:
+			$bullet.velocity(target, bulletTime, "linear", function() {	// Move the bullet
+				$(this).remove();													// When anim finishes, remove bullet
+				deregisterBullet(this);
+			});
 
 			playSound('bullet');
 			game.levelStats.bulletsFired++;
 			player.gun.ammo--;
-			testAmmo();		// Check if ammo stuck on zero
+			testAmmoDepletion();		// Check if ammo stuck on zero
 			updateStats();
 		}
 	}
@@ -1086,11 +1108,12 @@
 		for (var key in game.entities.activePlanes) {										// Find our expired plane's index
 			if ($(game.entities.activePlanes[key]).attr("id") === $plane.attr("id")) break;	// Found it!	// only works matching on IDs
 		}
-		game.entities.activePlanes.splice(key,1);											// Remove the expired plane
 
 		if (isNaN(key)) {
 			console.log("could not find "+$plane.attr("id")+" in array of "+game.entities.activePlanes.length+" active planes to deregister");
 		}
+		else game.entities.activePlanes.splice(key,1);	// Remove the expired plane
+
 		updateStats();
 	}
 
@@ -1115,7 +1138,7 @@
 
 		playSound('dive');
 
-		$plane.stop(true)	// clearQueue on
+		$plane.velocity('stop', true)	// clearQueue on
 			  .addClass('diving')				// Needs to dive from y=60 to y=542
 			  .velocity({"top":"558px", "left":dest+'px'}, 1000, 'linear', function() {	// Dive
 					clearInterval(diveLoop);	// Stop detection of air paras
@@ -1124,45 +1147,32 @@
 					//explode($plane);		// CAUSES FREEZING
 					// explode() function duplicated here:	// WASTEFUL! FIXME
 					playSound('explosion');		// BOOM!
-
-					$plane.stop().removeClass('rtl').removeClass('ltr').addClass('exploding').addClass('fr1');
+					$plane.velocity('stop')
+						  .removeClass('rtl ltr')
+						  .addClass('exploding');	// 0.7s animation
 
 					setTimeout(function() {
-						$plane.removeClass('fr1').addClass('fr2');			// Swap sprite after 120
-						setTimeout(function() {
-							$plane.removeClass('fr2').addClass('fr3');			// Swap sprite after 120
-							setTimeout(function() {
-								$plane.removeClass('fr3').addClass('fr4');			// Swap sprite after 120
-								setTimeout(function() {
-									$plane.removeClass('fr4').addClass('fr5');			// Swap sprite after 120
-									setTimeout(function() {
-										$plane.removeClass('fr5').addClass('fr6');			// Swap sprite after 120
-										setTimeout(function() {
-											$plane.remove();									// Remove plane after 120
-											updateStats();
-										}, 120);
-									}, 120);
-								}, 120);
-							}, 120);
-						}, 120);
-					}, 120);
+						$plane.remove();
+						updateStats();
+					}, 700);
 			  });
 	}
 
 	function explodePlane($plane) {
 		console.log("boom");
-		//FIXME
+		// Stop continuous sound effect FIXME
 		//sounds[eval($plane.data("planeType"))].stop();	// Stop the sound of that plane (WHAT IF 2 FLYING?)
 		//sm2.stop(eval('sfx_'+$plane.data("planeType")));	// Stops the sound by soundid
 
-		$plane.stop(true);		// clearQueue enabled	// Stop it
-
+		$plane.velocity('stop', true);	// clearQueue enabled
 		explode($plane);
 	}
 
 	function explode($obj) {
 		playSound('explosion');
-		$obj.stop().removeClass('rtl ltr grenade').addClass('exploding');	// 0.7s animation
+		$obj.velocity('stop')
+			.removeClass('rtl ltr grenade')
+			.addClass('exploding');	// 0.7s animation
 
 		setTimeout(function() {
 			$obj.remove();
@@ -1177,7 +1187,8 @@
 			var dest = $plane.data("dest");				// Read its destination
 			var newTime = ($plane.hasClass('ltr')) ? speed * (800-x)/800 : speed * (x/800);
 
-			$plane.velocity({"left": dest}, newTime, 'linear', function() {	// Re-animate the plane
+			// Re-animate the plane:
+			$plane.velocity({"left": dest}, newTime, 'linear', function() {
 				$plane.remove();
 				deregisterPlane($plane);
 			});
@@ -1236,10 +1247,10 @@
 			case 5: playSound('splatargh'); break;
 		}
 
-		$para.stop(true)	// clearQueue enabled - terminates any earlier animation and guarantees his removal
+		$para.velocity('stop', true)	// clearQueue enabled - terminates any earlier animation and guarantees his removal
 			 .removeClass('floating')
 			 .addClass('shot')
-			 .animate({"top":"+=2px"}, 500, function() {
+			 .animate({"top":"+=2px"}, 700, function() {
 				$(this).remove();
 			 });
 		updateStats();
@@ -1440,28 +1451,29 @@
 
 	function driveBy() {
 		var $car = $('<div id="car"></div>').appendTo('#gamefield');			// Create the car
+		playSound('driveby');
 		var allParas = game.entities.groundParasL.concat(game.entities.bunkerParasL)
 											.concat(game.entities.bunkerParasR)
 											.concat(game.entities.groundParasR);		// All paras to die
 
-		var runOverParas = setInterval(function() {
+		var detectRunOverParas = setInterval(function() {
 			for (var $para of allParas) {
 				var pos = parseInt($para.css("left"));				// Get the para coord
 				var carPos = parseInt($car.css("left"));			// Get the car coord
 
 				if (pos >= carPos && pos <= carPos+38) {		// When collision detected,
 					killPara($para);
-					$para.remove();							// The para dies
+					//$para.remove();							// The para dies
 					console.log($para.attr("id")+' got squished!');
 				}
 			}
 		}, 75);				// when driveBy() is called, run collision detection every 75ms
 
 		console.log("Car start");
-		$car.velocity({"left":"800px"}, 2000, 'linear', function() {		// Drive the car
+		$car.velocity({"left":"800px"}, 2500, 'linear', function() {		// Drive the car
 			$(this).remove();
 			console.log("Car end");
-			clearInterval(runOverParas);									// Screen traversed, stop detecting collisions
+			clearInterval(detectRunOverParas);	// Screen traversed, stop detecting collisions
 		});
 
 		rebuildGroundArrays();		// Clears the arrays
@@ -1606,13 +1618,6 @@
 			shop.buyItem(item);
 		});
 
-/*		// Volume widget:
-		$('#volumewidget').hover(function() {
-			$(this).stop().velocity({"height":"35px","width":"50px"});		// Hover = grow widget
-		}, function() {
-			$(this).stop().velocity({"height":"11px","width":"11px"});		// Mouseout = shrink it
-		});
-*/
 
 		/**********/
 		/*! INPUT */
@@ -1675,5 +1680,12 @@
 		});
 
 	}); // End of "document ready" jQuery
+
+
+	// Reveal the minimum from the module:
+	return {
+		game: game,
+		sounds: sounds
+	};
 
 }($));	// pass in jQuery dependency to IIFE
