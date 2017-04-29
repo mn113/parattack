@@ -49,25 +49,15 @@
 			life_thr: 4000,
 			nade_thr: 2500
 		},
-		player: {},	// TODO
 		entities: {		// Holds the sprite objects created and destroyed each level
 			activePlanes:[],
 			activeParas:[],
 			activeBullets:[],
 			groundParasL:[], groundParasR:[],
 			bunkerParasL:[], bunkerParasR:[],
-			pid:1,			// Plane, bullet, man (para) counters
-			bid:1,
-			mid:1,
-
-			resetAll: function() {
-				this.activePlanes = [];
-				this.activeParas = [];
-				this.activeBullets = [];
-				this.groundParasL = [];	this.groundParasR = [];
-				this.bunkerParasL = []; this.bunkerParasR = [];
-				this.bid = this.pid = this.mid = 1;			// Reset ids
-			}
+			pid:1,		// plane counter
+			bid:1,		// bullet counter
+			mid:1,		// man (para) counter
 		},
 		level: 1,
 		levelStats: {
@@ -82,11 +72,6 @@
 			comboChain:[],	// Temporarily stores bids which hit planes. Tested for consecutivity with showCombo()
 			driveBys:1,
 			allKillsThisLevel:[0,0,0,0,0,0,0,0],
-
-			resetAll: function() {
-				// reset method to replace code in startLevel() function
-			},
-
 			scores: {
 				levelBonus:0,
 				planeScore:0,
@@ -94,60 +79,73 @@
 				comboScore:0,
 				timeScore:0,
 				paraScore:0,
-				levelScore:0,
-
-				calcScore: function() {
-					this.levelBonus = (player.levelsCompleted[game.level-1] === true) ? 500 : 0;	// gain 500 for beating the level
-					//var planeScore = 0;
-					for (var i of game.levelStats.allKillsThisLevel) {
-						this.planeScore += game.levelStats.allKillsThisLevel[i]*(1+game.params.extraBulletsPerKill[i]);
-					}
-					this.accuScore = (!isNaN(game.levelStats.accuracy)) ? Math.floor(10*game.levelStats.accuracy) : 0;// score 0 if accuracy invalid
-					this.comboScore = game.levelStats.comboScore;
-					this.timeScore = 600 - game.levelStats.levelTime; 											// finish inside 10 minutes to score points here
-					this.paraScore = (game.levelStats.landedParas === 0) ? 1500 : -25 * game.levelStats.landedParas;	// bonus for flawless victory
-					this.levelScore = (this.levelBonus + this.planeScore + this.accuScore + this.timeScore + this.paraScore);	// Total score for this level
-
-					player.scores.allLevelScores[game.level-1] = this.levelScore;								// Store it in array
-					player.scores.spendableScore += this.levelScore;										// Add latest score to cumulator
-					player.scores.cumulativeScore += this.levelScore;										// Add latest score to cumulator
-
-					this.checkRewards();
-				},
-
-				loadScore: function() {
-					var scoreHtml = '<p>Level bonus: '+this.levelBonus+'</p>'+
-									'<p>Targets bonus: '+this.planeScore+'</p>'+
-									'<p>Accuracy bonus: '+this.accuScore+'</p>'+
-									'<p>Combo bonus: '+this.comboScore+'</p>'+
-									'<p>Time bonus: '+this.timeScore+'</p><p>'+
-									'<p>Ground penalty: '+this.paraScore+'</p>'+
-									'<p>Level score: '+this.levelScore+'</p>'+
-									'<p>Game score so far: '+player.scores.spendableScore+'</p>';
-
-					if (this.parascore>0) scoreHtml.replace('Ground penalty','Ground bonus');
-
-					return scoreHtml;
-				},
-
-				checkRewards: function() {
-					var tot = player.scores.cumulativeScore;	// MUST BE SEPARATE FROM SHOP SCORE
-					if (tot > game.params.life_thr) {
-						player.lives++;
-						//updateLives();
-						// Show message
-						console.log('Gained an extra life for '+game.params.life_thr+' points.');
-						game.params.life_thr += 4000;
-					}
-					if (tot > game.params.nade_thr) {
-						player.grenades++;
-						//setGrenades();
-						// Show message
-						console.log('Gained a grenade for '+game.params.nade_thr+' points.');
-						game.params.nade_thr += 2500;
-					}
-				}
+				levelScore:0
 			}
+		}
+	};
+
+	game.entities.resetAll = function() {
+		this.activePlanes = [];
+		this.activeParas = [];
+		this.activeBullets = [];
+		this.groundParasL = [];	this.groundParasR = [];
+		this.bunkerParasL = []; this.bunkerParasR = [];
+		this.bid = this.pid = this.mid = 1;			// Reset ids
+	};
+
+	game.levelStats.resetAll = function() {
+		// reset method to replace code in startLevel() function
+	};
+
+	game.levelStats.scores.calcScore = function() {
+		this.levelBonus = (player.levelsCompleted[game.level-1] === true) ? 500 : 0;	// gain 500 for beating the level
+		//var planeScore = 0;
+		for (var i = 0; i < 7; i++) {
+			this.planeScore += game.levelStats.allKillsThisLevel[i]*(1+game.params.extraBulletsPerKill[i]);
+		}
+		this.accuScore = (!isNaN(game.levelStats.accuracy)) ? Math.floor(10*game.levelStats.accuracy) : 0;// score 0 if accuracy invalid
+		this.comboScore = game.levelStats.comboScore;
+		this.timeScore = 600 - game.levelStats.levelTime; 											// finish inside 10 minutes to score points here
+		this.paraScore = (game.levelStats.landedParas === 0) ? 1500 : -25 * game.levelStats.landedParas;	// bonus for flawless victory
+		this.levelScore = (this.levelBonus + this.planeScore + this.accuScore + this.timeScore + this.paraScore);	// Total score for this level
+
+		player.scores.allLevelScores[game.level-1] = this.levelScore;								// Store it in array
+		player.scores.spendableScore += this.levelScore;										// Add latest score to cumulator
+		player.scores.cumulativeScore += this.levelScore;										// Add latest score to cumulator
+
+		this.checkRewards();
+	};
+
+	game.levelStats.scores.loadScore = function() {
+		var scoreHtml = '<p>Level bonus: '+this.levelBonus+'</p>'+
+						'<p>Targets bonus: '+this.planeScore+'</p>'+
+						'<p>Accuracy bonus: '+this.accuScore+'</p>'+
+						'<p>Combo bonus: '+this.comboScore+'</p>'+
+						'<p>Time bonus: '+this.timeScore+'</p><p>'+
+						'<p>Ground penalty: '+this.paraScore+'</p>'+
+						'<p>Level score: '+this.levelScore+'</p>'+
+						'<p>Game score so far: '+player.scores.spendableScore+'</p>';
+
+		if (this.parascore>0) scoreHtml.replace('Ground penalty','Ground bonus');
+
+		return scoreHtml;
+	};
+
+	game.levelStats.scores.checkRewards = function() {
+		var tot = player.scores.cumulativeScore;	// MUST BE SEPARATE FROM SHOP SCORE
+		if (tot > game.params.life_thr) {
+			player.lives++;
+			//updateLives();
+			// Show message
+			console.log('Gained an extra life for '+game.params.life_thr+' points.');
+			game.params.life_thr += 4000;
+		}
+		if (tot > game.params.nade_thr) {
+			player.grenades++;
+			//setGrenades();
+			// Show message
+			console.log('Gained a grenade for '+game.params.nade_thr+' points.');
+			game.params.nade_thr += 2500;
 		}
 	};
 
@@ -176,7 +174,7 @@
 	/**********/
 	/*! TIMER */
 	/**********/
-	game.levelTimer = {
+	var levelTimer = {
 		startTime: null,
 		stopTime: null,
 		elapsed: 0,
@@ -310,7 +308,7 @@
 			var statsHtml = '';
 			statsHtml += '<div id="scorestats">';
 			statsHtml += '<p>Lives remaining: '+player.lives+'</p>';
-			statsHtml += '<p>Level time: '+game.levelTimer.formatTime()+'</p>';
+			statsHtml += '<p>Level time: '+levelTimer.formatTime()+'</p>';
 			statsHtml += '<p>Paras landed: '+game.levelStats.landedParas+'</p>';
 			statsHtml += '<p>Bullets fired: '+game.levelStats.bulletsFired+', Hits: '+game.levelStats.hits+
 						 ', Shooting accuracy: '+game.levelStats.accuracy+'%</p>';
@@ -340,7 +338,7 @@
 	function swapSprites(year) {		// Takes 1993 or 2009
 		var cssfile = 'sprites'+year;
 
-		$('link[@rel*=style][title]').each(function() {
+		$('link[rel*=style][title]').each(function() {
 			this.disabled = true;													// Disable all stylesheets
 			if (this.getAttribute('title') === cssfile) this.disabled = false;		// Enable the desired stylesheet
 		});
@@ -526,7 +524,7 @@
 		player.gun.savedAmmo = player.gun.ammo; // Save our ammo level for retries
 
 		// Go:
-		game.levelTimer.reset();
+		levelTimer.reset();
 		levelIntro(n);
 	}
 
@@ -547,13 +545,13 @@
 	/*! GAME FUNCTIONS */
 	/*******************/
 	function runGame() {				// All code needed for game running state
-		game.levelTimer.start();		// Start a new game timer from zero
+		levelTimer.start();				// Start a new game timer from zero
 		$('div.overlay').hide();		// (just in case)
 		loops.runAll();
 	}
 
 	function pause() {
-		game.levelTimer.stop();
+		levelTimer.stop();
 		$('#gamefield div').stop();		// stop everything moving
 		//sm2.pauseAll();	//TODO: pause & resume HTML5 sounds?
 		game.state = 'paused';
@@ -588,8 +586,8 @@
 	4. User cancelled
 	*/
 	function gameOver(reason) {
-		game.levelStats.levelTime = game.levelTimer.stop();	// Stop the stopwatch (total seconds)
-		$('#gamefield div').stop();					// Stop everything moving
+		game.levelStats.levelTime = levelTimer.stop();	// Stop the stopwatch (total seconds)
+		$('#gamefield div').stop();						// Stop everything moving
 		game.state = 'between';
 		//sm2.stopAll();
 
@@ -619,75 +617,6 @@
 	}
 
 
-	/***********************************/
-	/*! LOOPS (GENERATORS & ANIMATORS) */
-	/***********************************/
-	var loops = {	// Variables used to manage setInterval loops which run game
-		collisionLoop: null,
-		killsLoop: null,
-		planeGen: null,
-		paraGen: null,
-		paraFall: null,
-		paraWalk: null,
-		driveByCheck: null,
-		cleanup: null
-	};
-
-	loops.runAll = function() {
-		this.collisionLoop = setInterval(function() {	// Start collision detection loop
-			detectCollisions();
-		}, 50);
-
-		this.killsLoop = setInterval(function() {
-			if (game.levelStats.planeKills % 40 === 0) $('#killCount').html();			// Reset kill icons after 40
-			if (game.levelStats.planeKills >= game.levelStats.killsNeeded) gameOver(1);		// Enough kills to beat the level!
-		}, 1000);
-
-		this.planeGen = setInterval(function() {			// Start plane generator
-			planeGenerator();
-		}, 750);
-
-		this.paraGen = setInterval(function() {				// Start para generator
-			paraGenerator();
-		}, 2500);
-
-		this.paraFall = setInterval(function() {			// Falling paras animate every second
-			animateParas();
-		}, 1000);
-
-		this.paraWalk = setInterval(function() {			// Ground paras walk every second
-			walkParas();
-		}, 1000);
-
-		this.cleanup = setInterval(function() {				// Remove expired objects
-			cleanup();
-		}, 5000);
-
-		this.driveByCheck = setInterval(function() {		// Make a drive-by occur once per level when the situation is desperate
-			var a = (game.levelStats.driveBys > 0) ? true : false;
-			var b = (game.entities.bunkerParasR.length >= 2 || game.entities.bunkerParasL.length >= 2) ? true : false;
-			var c = (game.entities.groundParasR.length + game.entities.groundParasL.length > 4 ) ? true : false;
-			var d = (Math.random() > 0.8) ? true : false;		// 1 in  5 chance
-
-			if (a && b && c && d) {
-				driveBy();
-				game.levelStats.driveBys--;
-			}
-		}, 10000);	// Try every 10 seconds
-	};
-
-	loops.stopAll = function() {
-		clearInterval(this.collisionLoop);				// Stop the generators
-		clearInterval(this.killsLoop);
-		clearInterval(this.planeGen);
-		clearInterval(this.paraGen);
-		clearInterval(this.paraFall);
-		clearInterval(this.paraWalk);
-		clearInterval(this.cleanup);
-		clearInterval(this.driveByCheck);
-	};
-
-
 	/********************/
 	/*! STATS FUNCTIONS */
 	/********************/
@@ -702,15 +631,15 @@
 		var activeGroundParasString = '';
 		var activeBunkerParasString = '';
 		// Build new strings:
-		for (var i of game.entities.activePlanes) activePlanesString += $(game.entities.activePlanes[i]).attr("id") + ' ';
-		for (var j of game.entities.activeBullets) activeBulletsString += $(game.entities.activeBullets[j]).attr("id") + ' ';
-		for (var k of game.entities.activeParas) activeAirParasString += $(game.entities.activeParas[k]).attr("id") + ' ';
-		for (var l of game.entities.groundParasL) activeGroundParasString += $(game.entities.groundParasL[l]).attr("id") + ' ';
+		for (var $plane of game.entities.activePlanes) activePlanesString += $plane.attr("id") + ' ';
+		for (var $bullet of game.entities.activeBullets) activeBulletsString += $bullet.attr("id") + ' ';
+		for (var $airPara of game.entities.activeParas) activeAirParasString += $airPara.attr("id") + ' ';
+		for (var $gParaL of game.entities.groundParasL) activeGroundParasString += $gParaL.attr("id") + ' ';
 		activeGroundParasString += '~ ';
-		for (var m of game.entities.groundParasR) activeGroundParasString += $(game.entities.groundParasR[m]).attr("id") + ' ';
-		for (var n of game.entities.bunkerParasL) activeBunkerParasString += $(game.entities.bunkerParasL[n]).attr("id") + ' ';
+		for (var $gParaR of game.entities.groundParasR) activeGroundParasString += $gParaR.attr("id") + ' ';
+		for (var $bParaL of game.entities.bunkerParasL) activeBunkerParasString += $bParaL.attr("id") + ' ';
 		activeBunkerParasString += '~ ';
-		for (var o of game.entities.bunkerParasR) activeBunkerParasString += $(game.entities.bunkerParasR[o]).attr("id") + ' ';
+		for (var $bParaR of game.entities.bunkerParasR) activeBunkerParasString += $bParaR.attr("id") + ' ';
 		$('#activePlanes').html(activePlanesString);
 		// Display the strings:
 		$('#activeBullets').html(activeBulletsString);
@@ -720,16 +649,18 @@
 	}
 
 	function setGrenades() {
-		$('#grenadestock .gr').remove();						// Clear grenade display
-		for (var i=0; i<player.grenades; i++) {
-			$('<div class="gr"></div>').appendTo('#grenadestock');	// Add in the current number remaining
+		// Clear grenades display, then add back correct number:
+		$('#grenadestock .gr').remove();
+		for (var i = 0; i < player.grenades; i++) {
+			$('<div class="gr"></div>').appendTo('#grenadestock');
 		}
 	}
 
 	function updateLives() {
-		$('#lives').html('');										// Clear lives display
-		for (var i=0; i<player.lives; i++) {
-			$('<div class="heart"></div>').appendTo('#lives');		// Add in the current number remaining
+		// Clear lives display, then add back correct number:
+		$('#lives').html('');
+		for (var i = 0; i < player.lives; i++) {
+			$('<div class="heart"></div>').appendTo('#lives');
 		}
 	}
 
@@ -868,8 +799,8 @@
 	}
 
 	function resumeBullets() {					// Restart bullets on unpause
-		for (var i of game.entities.activeBullets) {
-			var $bullet = $(game.entities.activeBullets[i]);	// Get bullet from DOM
+		for (var $bullet of game.entities.activeBullets) {
+			//var $bullet = $(game.entities.activeBullets[i]);	// Get bullet from DOM
 			var XTarget = $bullet.data("XTarget");		// Read its target
 			var y = parseInt($bullet.css("top"));		// Read its y-coord
 			var oldTime = $bullet.data("bulletTime");	// Read its old travel time
@@ -915,93 +846,201 @@
 	}
 
 
-	/************************/
-	/*! SLAUGHTER FUNCTIONS */
-	/************************/
+	/***********************************/
+	/*! LOOPS (GENERATORS & ANIMATORS) */
+	/***********************************/
+	var loops = {	// Variables used to manage setInterval loops which run game
+		collisionLoop: null,
+		killsLoop: null,
+		planeGen: null,
+		paraGen: null,
+		paraFall: null,
+		paraWalk: null,
+		driveByCheck: null,
+		cleanup: null
+	};
 
-	function grenade(side) {
-		var target = (side === 'left') ? '-=30px' : '+=30px'; 	// Aim left or right?
+	loops.runAll = function() {
+		this.collisionLoop = setInterval(function() {	// Start collision detection loop
+			detectCollisions();
+		}, 50);
 
-		var $nade = $('<div class="grenade"></div>')			// Create the grenade
-						.appendTo('#gamefield')					// Add it to document
-						.animate({"left":target,"bottom":"+=30px"}, 250, "swing", function() {				// y upwards
-			   				$(this).animate({"left":target,"bottom":"18px"}, 200, "swing", function() {		// y downwards
-								playSound('explosion');
-								killGPs($nade.position().left);
-								$nade.animate({"left":"-=24px"}, 1, function() {	// shift to accommodate explosion sprite
-									explode($nade);
-								});
-							});
-						});
-		player.grenades--;
-		setGrenades();
-		updateStats();
-	}
+		this.killsLoop = setInterval(function() {
+			if (game.levelStats.planeKills % 40 === 0) $('#killCount').html();			// Reset kill icons after 40
+			if (game.levelStats.planeKills >= game.levelStats.killsNeeded) gameOver(1);		// Enough kills to beat the level!
+		}, 1000);
 
-	function killGPs(groundzero) {
-		var groundParas =  game.entities.groundParasR.concat(game.entities.groundParasL)
-												.concat(game.entities.bunkerParasR)
-												.concat(game.entities.bunkerParasL);
-		for (var i of groundParas) {
-			var $para = groundParas[i];
-			var x = $para.position().left;
-			if (x <= groundzero+20 && x >= groundzero-20) {	// If he's in the blast zone,
-				console.log($para.attr("id")+" is going home in a plastic bag.");
-				$para.remove();
-				// Play sound if hit:
-				if (Math.random() > 0.5) playSound('paraHit1');
-				else playSound('paraHit2');
+		this.planeGen = setInterval(function() {			// Start plane generator
+			generatePlane();
+		}, 750);
+
+		this.paraGen = setInterval(function() {				// Start para generator
+			generatePara();
+		}, 2500);
+
+		this.paraFall = setInterval(function() {			// Falling paras animate every second
+			animateParas();
+		}, 1000);
+
+		this.paraWalk = setInterval(function() {			// Ground paras walk every second
+			walkParas();
+		}, 1000);
+
+		this.cleanup = setInterval(function() {				// Remove expired objects
+			cleanup();
+		}, 5000);
+
+		this.driveByCheck = setInterval(function() {		// Make a drive-by occur once per level when the situation is desperate
+			var a = (game.levelStats.driveBys > 0) ? true : false;
+			var b = (game.entities.bunkerParasR.length >= 2 || game.entities.bunkerParasL.length >= 2) ? true : false;
+			var c = (game.entities.groundParasR.length + game.entities.groundParasL.length > 4 ) ? true : false;
+			var d = (Math.random() > 0.8) ? true : false;		// 1 in  5 chance
+
+			if (a && b && c && d) {
+				driveBy();
+				game.levelStats.driveBys--;
 			}
-		}
-		rebuildGroundArrays();
-		updateStats();
-	}
+		}, 10000);	// Try every 10 seconds
+	};
 
-	// Use this directly after grenade, driveby, plane crash...
-	function rebuildGroundArrays() {	// After slaughterings, rebuild the 4 arrays from scratch (easier than splicing)
-		game.entities.groundParasR = [];				// Clear all the arrays
-		game.entities.groundParasL = [];
-		game.entities.bunkerParasR = [];
-		game.entities.bunkerParasL = [];
+	loops.stopAll = function() {
+		clearInterval(this.collisionLoop);				// Stop the generators
+		clearInterval(this.killsLoop);
+		clearInterval(this.planeGen);
+		clearInterval(this.paraGen);
+		clearInterval(this.paraFall);
+		clearInterval(this.paraWalk);
+		clearInterval(this.cleanup);
+		clearInterval(this.driveByCheck);
+	};
 
-		$('#gamefield div.para.ground').each(function() {		// Get every para on the ground
-			var idpfx = $(this).attr("id").substr(0,6);
-			// Assign him to the correct array:
-			if (idpfx === 'bunker' && $(this).hasClass('left')) game.entities.bunkerParasL.push($(this));
-			if (idpfx === 'ground' && $(this).hasClass('left')) game.entities.groundParasL.push($(this));
-			if (idpfx === 'bunker' && $(this).hasClass('right')) game.entities.bunkerParasR.push($(this));
-			if (idpfx === 'ground' && $(this).hasClass('right')) game.entities.groundParasR.push($(this));
-		});
-		updateStats();
-	}
 
-	function driveBy() {
-		var $car = $('<div id="car"></div>').appendTo('#gamefield');			// Create the car
-		var allParas = game.entities.groundParasL.concat(game.entities.bunkerParasL)
-											.concat(game.entities.bunkerParasR)
-											.concat(game.entities.groundParasR);		// All paras to die
+	/***********************************/
+	/*! CONTINUOUSLY RUNNING FUNCTIONS */
+	/***********************************/
+	function generatePlane() {		// Generate planes randomly, based on quotas & level
+		var r = Math.random();
+		if (r < game.params.levelIntensities[game.level-1]) {	// 30% to 66% chance we make a new plane this time
+			var rn = Math.random();
+			var thr = 0;								// Threshold starts at 0
 
-		var runOverParas = setInterval(function() {
-			for (var i of allParas) {
-				var $para = $(allParas[i]);							// Get the para object
-				var pos = parseInt($para.css("left"));				// Get the para coord
-				var carPos = parseInt($car.css("left"));			// Get the car coord
-
-				if (pos >= carPos && pos <= carPos+38) {		// When collision detected,
-						$para.remove();							// The para dies
-						console.log($para.attr("id")+' got squished!');
+			for (var i = 0; i < 7; i++) { 	// For each plane's quota:
+				thr += game.params.planeQuotas['level'+game.level][i];	// Set threshold for that plane
+				if (rn < thr) {										// Test it
+					newPlane(i);									// If true, create that plane
+					break;											// And stop testing
 				}
 			}
-		}, 75);				// when driveBy() is called, run collision detection every 75ms
+		}
+	}
 
-		console.log("Car start");
-		$car.animate({"left":"800px"}, 2000, 'linear', function() {		// Drive the car
-			$(this).remove();
-			console.log("Car end");
-			clearInterval(runOverParas);									// Screen traversed, stop detecting collisions
-		});
+	function generatePara() {		// Generate paras randomly from active planes
+		var r = Math.random();
+		if (r < game.params.levelIntensities[game.level-1] && game.entities.activePlanes.length > 0) {		// 30% to 66% chance we release a new para now
+			var $plane = game.entities.activePlanes[Math.floor((game.entities.activePlanes.length)*Math.random())];	// Select an active plane at random
+			newPara($plane);																// Bombs away!
+		}
+	}
 
-		rebuildGroundArrays();		// Clears the arrays
+	function detectCollisions() {
+		// Get each of our bullets one by one:
+		for (var $bullet of game.entities.activeBullets) {				// 8 bullets max
+			//var $bullet = $(game.entities.activeBullets[i]);
+			var x = $bullet.position().left;
+			var y = $bullet.position().top;
+
+			if (x < 0 || x > 800) {			// Get rid of bullets that already went offscreen (low angle)
+				deregisterBullet($bullet);
+				$bullet.remove();
+				continue;					// Don't test this one but continue testing the rest of the bullets
+			}
+
+			// Test against paras first (bullet can pass through them):
+			for (var $para of game.entities.activeParas) {							// 5 paras max
+				//var $para = $(game.entities.activeParas[j]);
+				var p = $para.position().left;
+				var q = $para.position().top;
+
+				if (x-p < 22) {											// Simplistic proximity test
+					if ((x>=p-2 && x<=p+22) && (y>=q-2 && y<=q+22)) {	// Bullet inside para coords
+						deregisterPara($para);
+						killPara($para);
+						console.log($para.attr("id")+" was hit by "+$bullet.attr("id")+"!");
+						game.levelStats.hits++;
+					 	game.levelStats.allKillsThisLevel[7]++;						// Count 1 para kill
+						player.gun.ammo += game.params.extraBulletsPerKill[7];	// Gain his ammo bonus
+
+						// Combo test:
+						if ($bullet.data("hits") > 0) showCombo(x,y, $bullet.data("hits"));	// can be 1,2 or 3 depending on hits
+						$bullet.data("hits",($bullet.data("hits")+1));
+
+						break;	// Don't test the other paras against this bullet right now
+					}
+				}
+			}
+
+			// Test against planes only when bullet is in the plane zone:
+			if (y < 85) {
+				for (var $plane of game.entities.activePlanes) {							// 5 planes max
+					//var $plane = $(game.entities.activePlanes[k]);
+					var a = $plane.position().left;
+					var b = $plane.position().top;
+
+					if (x-a < 50) {											// Simplistic proximity test
+						if ((x>=a-2 && x<=a+50) && (y>=b-6 && y<=b+22)) {	// Bullet inside plane coords
+							// Update kill stats
+							deregisterPlane($plane);		// Deregister plane (no more collision tests)
+
+							if ($plane.data("planeType") === 'messerschmitt') divePlane($plane);
+							else explodePlane($plane);
+
+							game.levelStats.hits++;
+							game.levelStats.planeKills++;
+						 	game.levelStats.allKillsThisLevel[$plane.data("type")]++;	// Count 1 kill
+							$('<div class="kill"></div>').appendTo('#killCount');	// Add 1 kill icon to counter
+						 	player.gun.ammo += $plane.data("ammoBonus");			// Gain its ammo bonus
+							console.log($plane.attr("id")+" was hit by "+$bullet.attr("id")+"! ("+game.levelStats.planeKills+"k)");
+							// CODE STOPS AROUND HERE IN OPERA
+
+							// Combo test:
+							var hid = $bullet.data("bid");							// hitID
+							var comboSize = testComboChain(hid);					// Test the hitID for combos
+							if (comboSize > 0) {
+								showCombo(x,y, comboSize);
+								console.log("COMBOOOO! ("+comboSize+")");
+							}
+							if ($bullet.data("hits") > 0) showCombo(x,y, $bullet.data("hits"));
+
+							deregisterBullet($bullet);
+							$bullet.remove();				// Disappear the bullet
+
+							break;		// Break out of this bullet's detection cycle if a plane was hit
+						}
+					}
+				}
+			}
+		}
+	}
+
+	function cleanup() {	// Remove old (frozen?) objects from the screen - bullets, planes, paras(?)
+		for (var $bullet of game.entities.activeBullets) {				// Problem: the frozen bullets are no longer registered in this array
+			if (game.entities.bid - $bullet.data("bid") > 12) {
+				deregisterBullet($bullet);
+				$bullet.remove();
+			}
+		}
+		for (var $plane of game.entities.activePlanes) {
+			if (game.entities.pid - $plane.data("pid") > game.params.maxPlanesPerLevel[game.level-1] + 2) {	// could give premature removal of slow planes?
+				deregisterPlane($plane);
+				$plane.remove();
+			}
+		}
+		for (var $para of game.entities.activeParas) {
+			if (game.entities.mid - $para.data("mid") > game.params.maxParasPerLevel[game.level-1] + 2) {
+				deregisterPara($para);
+				$para.remove();
+			}
+		}
 	}
 
 
@@ -1066,8 +1105,8 @@
 		var diveLoop = setInterval(function() {			// Detect collisions with airborne paras
 			var x = $plane.position().left + 17;		// Use sprite's centre coords
 			var y = $plane.position().top + 20;
-			for (var i of game.entities.activeParas) {
-				var $para = game.entities.activeParas[i];
+			for (var $para of game.entities.activeParas) {
+				//var $para = game.entities.activeParas[i];
 				var a = $para.position().left + 10;
 				var b = $para.position().top + 10;
 				if (Math.abs(a-x) < 27 && Math.abs(y-b) < 30) {	// Diving plane touches air para
@@ -1152,8 +1191,8 @@
 	}
 
 	function resumePlanes() {
-		for (var i of game.entities.activePlanes) {
-			var $plane = $(game.entities.activePlanes[i]);	// Get plane from DOM
+		for (var $plane of game.entities.activePlanes) {
+			//var $plane = $(game.entities.activePlanes[i]);	// Get plane from DOM
 			var x = $plane.position().left;				// Get its x-coord
 			var speed = $plane.data("speed");			// Read its speed data
 			var dest = $plane.data("dest");				// Read its destination
@@ -1208,8 +1247,8 @@
 	}
 
 	function animateParas() {
-		for (var i of game.entities.activeParas) {
-			var $para = game.entities.activeParas[i];
+		for (var $para of game.entities.activeParas) {
+			//var $para = game.entities.activeParas[i];
 			$para.toggleClass('alt').toggleClass('normal');
 		}
 	}
@@ -1248,8 +1287,8 @@
 	}
 
 	function resumeParas() {
-		for (var i of game.entities.activeParas) {
-			var $para = $(game.entities.activeParas[i]);				// Get para from DOM
+		for (var $para of game.entities.activeParas) {
+			//var $para = $(game.entities.activeParas[i]);				// Get para from DOM
 			var y = $para.position().top;						// Get his y-coord
 			var newSpeed = game.params.paraSpeed * (564-y)/564;	// Calculate new drop time
 
@@ -1292,8 +1331,8 @@
 
 	function walkParas() {
 		var groundParas = game.entities.groundParasL.concat(game.entities.groundParasR);
-		for (var i of groundParas) {
-			var $groundPara = groundParas[i];
+		for (var $groundPara of groundParas) {
+			//var $groundPara = groundParas[i];
 
 			var pos = $groundPara.position().left;
 			var dest = parseInt($groundPara.data("dest"));
@@ -1348,10 +1387,10 @@
 		var bPL = game.entities.bunkerParasL;
 		var bPR = game.entities.bunkerParasR;
 		for (var i = 0, ll = bPL.length; i < ll; i++) {
-			bPL[i].css("left",eval(350-(10*i)) + 'px');		// Each new bunkerPara stands 10px back from previous one
+			bPL[i].css("left", 350 - (10*i) + 'px');		// Each new bunkerPara stands 10px back from previous one
 		}
 		for (var j = 0, lr = bPR.length; j < lr; j++) {
-			bPR[j].css("left",eval(440+(10*j)) + 'px');
+			bPR[j].css("left", 440 + (10*j) + 'px');
 		}
 
 		updateStats();
@@ -1400,139 +1439,92 @@
 	}
 
 
-	/***********************************/
-	/*! CONTINUOUSLY RUNNING FUNCTIONS */
-	/***********************************/
+	/************************/
+	/*! SLAUGHTER FUNCTIONS */
+	/************************/
+	function grenade(side) {
+		var target = (side === 'left') ? '-=30px' : '+=30px'; 	// Aim left or right?
 
-	function planeGenerator() {		// Generate planes randomly, based on quotas & level
-
-		var r = Math.random();
-		if (r < game.params.levelIntensities[game.level-1]) {	// 30% to 66% chance we make a new plane this time
-			var rn = Math.random();
-			var thr = 0;								// Threshold starts at 0
-
-			for (var i of game.params.planeQuotas['level'+game.level]) {	// For each plane's quota:
-				thr += game.params.planeQuotas['level'+game.level][i];	// Set threshold for that plane
-				if (rn < thr) {										// Test it
-					newPlane(i);									// If true, create that plane
-					break;											// And stop testing
-				}
-			}
-		}
+		var $nade = $('<div class="grenade"></div>')			// Create the grenade
+						.appendTo('#gamefield')					// Add it to document
+						.animate({"left":target,"bottom":"+=30px"}, 250, "swing", function() {				// y upwards
+			   				$(this).animate({"left":target,"bottom":"18px"}, 200, "swing", function() {		// y downwards
+								playSound('explosion');
+								killGPs($nade.position().left);
+								$nade.animate({"left":"-=24px"}, 1, function() {	// shift to accommodate explosion sprite
+									explode($nade);
+								});
+							});
+						});
+		player.grenades--;
+		setGrenades();
+		updateStats();
 	}
 
-	function paraGenerator() {		// Generate paras randomly from active planes
-
-		var r = Math.random();
-		if (r < game.params.levelIntensities[game.level-1] && game.entities.activePlanes.length > 0) {		// 30% to 66% chance we release a new para now
-			var $plane = game.entities.activePlanes[Math.floor((game.entities.activePlanes.length)*Math.random())];	// Select an active plane at random
-			newPara($plane);																// Bombs away!
-		}
-	}
-
-	function detectCollisions() {
-
-		// Get each of our bullets one by one:
-		for (var i of game.entities.activeBullets) {				// 8 bullets max
-			var $bullet = $(game.entities.activeBullets[i]);
-			var x = $bullet.position().left;
-			var y = $bullet.position().top;
-
-			if (x < 0 || x > 800) {			// Get rid of bullets that already went offscreen (low angle)
-				deregisterBullet($bullet);
-				$bullet.remove();
-				continue;					// Don't test this one but continue testing the rest of the bullets
-			}
-
-			// Test against paras first (bullet can pass through them):
-			for (var j of game.entities.activeParas) {							// 5 paras max
-				var $para = $(game.entities.activeParas[j]);
-				var p = $para.position().left;
-				var q = $para.position().top;
-
-				if (x-p < 22) {											// Simplistic proximity test
-					if ((x>=p-2 && x<=p+22) && (y>=q-2 && y<=q+22)) {	// Bullet inside para coords
-						deregisterPara($para);
-						killPara($para);
-						console.log($para.attr("id")+" was hit by "+$bullet.attr("id")+"!");
-						game.levelStats.hits++;
-					 	game.levelStats.allKillsThisLevel[7]++;						// Count 1 para kill
-						player.gun.ammo += game.params.extraBulletsPerKill[7];	// Gain his ammo bonus
-
-						// Combo test:
-						if ($bullet.data("hits") > 0) showCombo(x,y, $bullet.data("hits"));	// can be 1,2 or 3 depending on hits
-						$bullet.data("hits",($bullet.data("hits")+1));
-
-						break;	// Don't test the other paras against this bullet right now
-					}
-				}
-			}
-
-			// Test against planes only when bullet is in the plane zone:
-			if (y < 85) {
-				for (var k of game.entities.activePlanes) {							// 5 planes max
-					var $plane = $(game.entities.activePlanes[k]);
-					var a = $plane.position().left;
-					var b = $plane.position().top;
-
-					if (x-a < 50) {											// Simplistic proximity test
-						if ((x>=a-2 && x<=a+50) && (y>=b-6 && y<=b+22)) {	// Bullet inside plane coords
-							// Update kill stats
-							deregisterPlane($plane);		// Deregister plane (no more collision tests)
-
-							if ($plane.data("planeType") === 'messerschmitt') divePlane($plane);
-							else explodePlane($plane);
-
-							game.levelStats.hits++;
-							game.levelStats.planeKills++;
-						 	game.levelStats.allKillsThisLevel[$plane.data("type")]++;	// Count 1 kill
-							$('<div class="kill"></div>').appendTo('#killCount');	// Add 1 kill icon to counter
-						 	player.gun.ammo += $plane.data("ammoBonus");			// Gain its ammo bonus
-							console.log($plane.attr("id")+" was hit by "+$bullet.attr("id")+"! ("+game.levelStats.planeKills+"k)");
-							// CODE STOPS AROUND HERE IN OPERA
-
-							// Combo test:
-							var hid = $bullet.data("bid");							// hitID
-							var comboSize = testComboChain(hid);					// Test the hitID for combos
-							if (comboSize > 0) {
-								showCombo(x,y, comboSize);
-								console.log("COMBOOOO! ("+comboSize+")");
-							}
-							if ($bullet.data("hits") > 0) showCombo(x,y, $bullet.data("hits"));
-
-							deregisterBullet($bullet);
-							$bullet.remove();				// Disappear the bullet
-
-							break;		// Break out of this bullet's detection cycle if a plane was hit
-						}
-					}
-				}
-			}
-		}
-	}
-
-	function cleanup() {	// Remove old (frozen?) objects from the screen - bullets, planes, paras(?)
-		for (var i of game.entities.activeBullets) {				// Problem: the frozen bullets are no longer registered in this array
-			var $bullet = game.entities.activeBullets[i];
-			if (game.entities.bid - $bullet.data("bid") > 12) {
-				deregisterBullet($bullet);
-				$bullet.remove();
-			}
-		}
-		for (var j of game.entities.activePlanes) {
-			var $plane = game.entities.activePlanes[j];
-			if (game.entities.pid - $plane.data("pid") > game.params.maxPlanesPerLevel[game.level-1] + 2) {	// could give premature removal of slow planes?
-				deregisterPlane($plane);
-				$plane.remove();
-			}
-		}
-		for (var k of game.entities.activeParas) {
-			var $para = game.entities.activeParas[k];
-			if (game.entities.mid - $para.data("mid") > game.params.maxParasPerLevel[game.level-1] + 2) {
-				deregisterPara($para);
+	function killGPs(groundzero) {
+		var groundParas =  game.entities.groundParasR.concat(game.entities.groundParasL)
+												.concat(game.entities.bunkerParasR)
+												.concat(game.entities.bunkerParasL);
+		for (var $para of groundParas) {
+			//var $para = groundParas[i];
+			var x = $para.position().left;
+			if (x <= groundzero+20 && x >= groundzero-20) {	// If he's in the blast zone,
+				console.log($para.attr("id")+" is going home in a plastic bag.");
 				$para.remove();
+				// Play sound if hit:
+				if (Math.random() > 0.5) playSound('paraHit1');
+				else playSound('paraHit2');
 			}
 		}
+		rebuildGroundArrays();
+		updateStats();
+	}
+
+	// Use this directly after grenade, driveby, plane crash...
+	function rebuildGroundArrays() {	// After slaughterings, rebuild the 4 arrays from scratch (easier than splicing)
+		game.entities.groundParasR = [];				// Clear all the arrays
+		game.entities.groundParasL = [];
+		game.entities.bunkerParasR = [];
+		game.entities.bunkerParasL = [];
+
+		$('#gamefield div.para.ground').each(function() {		// Get every para on the ground
+			var idpfx = $(this).attr("id").substr(0,6);
+			// Assign him to the correct array:
+			if (idpfx === 'bunker' && $(this).hasClass('left')) game.entities.bunkerParasL.push($(this));
+			if (idpfx === 'ground' && $(this).hasClass('left')) game.entities.groundParasL.push($(this));
+			if (idpfx === 'bunker' && $(this).hasClass('right')) game.entities.bunkerParasR.push($(this));
+			if (idpfx === 'ground' && $(this).hasClass('right')) game.entities.groundParasR.push($(this));
+		});
+		updateStats();
+	}
+
+	function driveBy() {
+		var $car = $('<div id="car"></div>').appendTo('#gamefield');			// Create the car
+		var allParas = game.entities.groundParasL.concat(game.entities.bunkerParasL)
+											.concat(game.entities.bunkerParasR)
+											.concat(game.entities.groundParasR);		// All paras to die
+
+		var runOverParas = setInterval(function() {
+			for (var $para of allParas) {
+				//var $para = $(allParas[i]);							// Get the para object
+				var pos = parseInt($para.css("left"));				// Get the para coord
+				var carPos = parseInt($car.css("left"));			// Get the car coord
+
+				if (pos >= carPos && pos <= carPos+38) {		// When collision detected,
+						$para.remove();							// The para dies
+						console.log($para.attr("id")+' got squished!');
+				}
+			}
+		}, 75);				// when driveBy() is called, run collision detection every 75ms
+
+		console.log("Car start");
+		$car.animate({"left":"800px"}, 2000, 'linear', function() {		// Drive the car
+			$(this).remove();
+			console.log("Car end");
+			clearInterval(runOverParas);									// Screen traversed, stop detecting collisions
+		});
+
+		rebuildGroundArrays();		// Clears the arrays
 	}
 
 
@@ -1694,8 +1686,7 @@
 					grenade('right');								// grenade R
 				}
 				if (e.keyCode === 81) {								// press 'q'
-					playSound('bunkerStorm');
-					//gameOver(4);
+					gameOver(4);
 				}
 			}
 
