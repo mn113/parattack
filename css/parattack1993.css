@@ -152,13 +152,18 @@
 .rtl {left:752px;}
 .ltr {left:0;}
 
-.exploding {position:absolute; width:48px; background: transparent url(../img/sprites.png) no-repeat;}
-.exploding.fr1 {background-position: 0 -120px; height:22px;}
-.exploding.fr2 {background-position: -50px -120px; height:22px;}
-.exploding.fr3 {display:none;}
-.exploding.fr4 {display:none;}
-.exploding.fr5 {display:none;}
-.exploding.fr6 {display:none;}
+.exploding {
+	position:absolute;
+	width:40px;
+	height: 22px;
+	background: transparent url(../img/sprites.png) no-repeat;
+	background-position: -140px -42px;
+	animation: explode 0.7s steps(5, end) 1;
+}
+@keyframes explode {	/* 22px vertical steps desired */
+	from {background-position:-140px -42px;}
+	to {background-position:-140px -152px;}
+}
 
 .messerschmitt.diving.ltr {background-position:-104px 0; width:34px; height:40px}
 .messerschmitt.diving.rtl {background-position:-140px 0; width:34px; height:40px}
@@ -196,7 +201,7 @@
 	50%   {background-position: -22px -165px;}
 }
 .para.shot {
-	animation: para-shot 1s steps(1, start) 1;
+	animation: para-shot 1s steps(2, start) 1;
 }
 @keyframes para-shot {
 	from, to {background-position: -44px -165px;}

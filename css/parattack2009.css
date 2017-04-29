@@ -84,8 +84,8 @@
 	height:42px;
 	position:absolute;
 	top:260px;
-	left:800px;	
-	background: transparent url(../img/sprites2009.png) no-repeat;	
+	left:800px;
+	background: transparent url(../img/sprites2009.png) no-repeat;
 	background-position: 0 -329px;
 }
 
@@ -117,7 +117,7 @@
 	position:absolute;
 	width:48px;
 	background: transparent url(../img/sprites2009.png) no-repeat;
-	z-index:1;	
+	z-index:1;
 }
 .blimp {
 	top: 30px;		/* Flight altitude */
@@ -166,13 +166,18 @@
 .rtl {left:752px;}
 .ltr {left:0;}
 
-.exploding {position:absolute; width:48px; background: transparent url(../img/sprites2009.png) no-repeat;}
-.exploding.fr1 {background-position: -102px 0; height:22px;}
-.exploding.fr2 {background-position: -102px -22px; height:22px;}
-.exploding.fr3 {background-position: -102px -44px; height:22px;}
-.exploding.fr4 {background-position: -102px -66px; height:22px;}
-.exploding.fr5 {background-position: -102px -88px; height:22px;}
-.exploding.fr6 {background-position: -102px -110px; height:22px;}
+.exploding {
+	position:absolute;
+	width:48px;
+	height: 22px;
+	background: transparent url(../img/sprites2009.png) no-repeat;
+	background-position: -102px 0px;
+	animation: explode 0.7s steps(5, end) 1;
+}
+@keyframes explode {	/* 22px vertical steps desired */
+	from {background-position:-102px 0px;}
+	to {background-position:-102px -110px;}
+}
 
 .messerschmitt.diving.ltr {background-position:-6px -130px; width:44px; height:44px}
 .messerschmitt.diving.rtl {background-position:-50px -130px; width:44px; height:44px}
@@ -182,7 +187,7 @@
 	height:19px;
 	width:27px;
 	background: transparent url(../img/sprites2009.png) no-repeat;
-	z-index:3;	
+	z-index:3;
 }
 
 .combo.p125 {background-position: -100px -247px;}
@@ -200,22 +205,42 @@
 	height: 20px;
 	background: transparent url(../img/sprites2009.png) no-repeat;
 	z-index:1;
+	background-position: 0 -231px;
 }
-.normal {background-position: 0 -231px;}
-.alt {background-position: -22px -231px;} /* 2-frame animation */
-
-.shot1 {background-position: -44px -231px;}
-.shot2 {background-position: -66px -231px;} /* 2-frame animation */
-
-.ground {
+.para.floating {
+	animation: para-float 1s steps(1, start) infinite;
+}
+@keyframes para-float {
+	from, to  {background-position: 0 -231px;}
+	50%   {background-position: -22px -231px;}
+}
+.para.shot {
+	animation: para-shot 1s steps(2, start) 1;
+}
+@keyframes para-shot {
+	from, to {background-position: -44px -231px;}
+	50%   {background-position: -66px -231px;}
+}
+.para.ground {
 	height: 16px;
-	width:12px;
+	width: 12px;
 }
-
-.left.step1 {background-position: 0 -256px;}
-.left.step2 {background-position: -14px -256px;}
-.right.step1 {background-position: -28px -256px;}
-.right.step2 {background-position: -42px -256px;}
+.para.ground.left {
+	background-position: 0 -256px;
+	animation: para-walk-ltr 1s steps(1, start) infinite;
+}
+.para.ground.right {
+	background-position: -28px -256px;
+	animation: para-walk-rtl 1s steps(1, start) infinite;
+}
+@keyframes para-walk-ltr {
+	from, to {background-position: 0 -256px;}
+	50%   {background-position: -14px -256px;}
+}
+@keyframes para-walk-rtl {
+	from, to {background-position: -28px -256px;}
+	50%   {background-position: -42px -256px;}
+}
 
 /**********/
 /* PLAYER */
@@ -297,7 +322,7 @@
 	height: 8px;
 	width:8px;
 	background: transparent url(../img/sprites2009.png) no-repeat;
-	background-position: -80px -260px;	
+	background-position: -80px -260px;
 	float:left;
 	margin:2px;
 }
@@ -318,7 +343,7 @@
 	width:58px;
 	height:26px;
 	background: transparent url(../img/sprites2009.png) no-repeat;
-	background-position: 0 -204px;	
+	background-position: 0 -204px;
 	left:0;
 	bottom: 18px;
 	z-index: 4;

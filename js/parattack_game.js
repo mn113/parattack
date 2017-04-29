@@ -955,8 +955,8 @@
 				var p = $para.position().left;
 				var q = $para.position().top;
 
-				if (x-p < 22) {											// Simplistic proximity test
-					if ((x>=p-2 && x<=p+22) && (y>=q-2 && y<=q+22)) {	// Bullet inside para coords
+				if (x-p < 24) {											// Simplistic proximity test
+					if ((x>=p-3 && x<=p+23) && (y>=q-3 && y<=q+23)) {	// Bullet inside para coords (+1px margin)
 						deregisterPara($para);
 						killPara($para);
 						console.log($para.attr("id")+" was hit by "+$bullet.attr("id")+"!");
@@ -979,8 +979,8 @@
 					var a = $plane.position().left;
 					var b = $plane.position().top;
 
-					if (x-a < 50) {											// Simplistic proximity test
-						if ((x>=a-2 && x<=a+50) && (y>=b-6 && y<=b+22)) {	// Bullet inside plane coords
+					if (x-a < 52) {											// Simplistic proximity test
+						if ((x>=a-3 && x<=a+51) && (y>=b-7 && y<=b+23)) {	// Bullet inside plane coords
 							// Update kill stats
 							deregisterPlane($plane);		// Deregister plane (no more collision tests)
 
@@ -1156,30 +1156,13 @@
 	}
 
 	function explode($obj) {
-		playSound('explosion');		// BOOM!
+		playSound('explosion');
+		$obj.stop().removeClass('rtl ltr grenade').addClass('exploding');	// 0.7s animation
 
-		$obj.stop().removeClass('rtl').removeClass('ltr').removeClass('grenade').addClass('exploding').addClass('fr1');
-
-		// TODO: CSS3 animation
 		setTimeout(function() {
-			$obj.removeClass('fr1').addClass('fr2');			// Swap sprite after 120
-			setTimeout(function() {
-				$obj.removeClass('fr2').addClass('fr3');			// Swap sprite after 120
-				setTimeout(function() {
-					$obj.removeClass('fr3').addClass('fr4');			// Swap sprite after 120
-					setTimeout(function() {
-						$obj.removeClass('fr4').addClass('fr5');			// Swap sprite after 120
-						setTimeout(function() {
-							$obj.removeClass('fr5').addClass('fr6');			// Swap sprite after 120
-							setTimeout(function() {
-								$obj.remove();									// Remove plane after 120
-								updateStats();
-							}, 120);
-						}, 120);
-					}, 120);
-				}, 120);
-			}, 120);
-		}, 120);
+			$obj.remove();
+			updateStats();
+		}, 700);
 	}
 
 	function resumePlanes() {
@@ -1450,24 +1433,6 @@
 		updateStats();
 	}
 
-	// Use this directly after grenade, driveby, plane crash...
-	function rebuildGroundArrays() {	// After slaughterings, rebuild the 4 arrays from scratch (easier than splicing)
-		game.entities.groundParasR = [];				// Clear all the arrays
-		game.entities.groundParasL = [];
-		game.entities.bunkerParasR = [];
-		game.entities.bunkerParasL = [];
-
-		$('#gamefield div.para.ground').each(function() {		// Get every para on the ground
-			var idpfx = $(this).attr("id").substr(0,6);
-			// Assign him to the correct array:
-			if (idpfx === 'bunker' && $(this).hasClass('left')) game.entities.bunkerParasL.push($(this));
-			if (idpfx === 'ground' && $(this).hasClass('left')) game.entities.groundParasL.push($(this));
-			if (idpfx === 'bunker' && $(this).hasClass('right')) game.entities.bunkerParasR.push($(this));
-			if (idpfx === 'ground' && $(this).hasClass('right')) game.entities.groundParasR.push($(this));
-		});
-		updateStats();
-	}
-
 	function driveBy() {
 		var $car = $('<div id="car"></div>').appendTo('#gamefield');			// Create the car
 		var allParas = game.entities.groundParasL.concat(game.entities.bunkerParasL)
@@ -1480,8 +1445,9 @@
 				var carPos = parseInt($car.css("left"));			// Get the car coord
 
 				if (pos >= carPos && pos <= carPos+38) {		// When collision detected,
-						$para.remove();							// The para dies
-						console.log($para.attr("id")+' got squished!');
+					killPara($para);
+					$para.remove();							// The para dies
+					console.log($para.attr("id")+' got squished!');
 				}
 			}
 		}, 75);				// when driveBy() is called, run collision detection every 75ms
@@ -1494,6 +1460,25 @@
 		});
 
 		rebuildGroundArrays();		// Clears the arrays
+	}
+
+	// Use this directly after grenade, driveby, plane crash...
+	function rebuildGroundArrays() {
+		// Rebuild the 4 arrays from scratch (easier than splicing shit around)
+ 		game.entities.groundParasR = [];
+		game.entities.groundParasL = [];
+		game.entities.bunkerParasR = [];
+		game.entities.bunkerParasL = [];
+
+		$('#gamefield div.para.ground').each(function() {		// Get every para on the ground
+			var idPrefix = $(this).attr("id").substr(0,6);
+			// Assign him to the correct array:
+			if (idPrefix === 'bunker' && $(this).hasClass('left')) game.entities.bunkerParasL.push($(this));
+			if (idPrefix === 'ground' && $(this).hasClass('left')) game.entities.groundParasL.push($(this));
+			if (idPrefix === 'bunker' && $(this).hasClass('right')) game.entities.bunkerParasR.push($(this));
+			if (idPrefix === 'ground' && $(this).hasClass('right')) game.entities.groundParasR.push($(this));
+		});
+		updateStats();
 	}
 
 
