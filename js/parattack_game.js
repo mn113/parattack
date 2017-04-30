@@ -583,31 +583,27 @@ var Parattack = (function($) {
 	}
 
 	function pause() {
-		levelTimer.stop();
-		$('#gamefield div').velocity('stop', true);		// stop everything moving
+		$.Velocity.pauseAll();
 		sounds.pauseAll();
-		game.state = 'paused';
 
-		// Clear generators & animators
+		// Clear generators:
 		loops.stopAll();
 
-		//showPaused();
+		levelTimer.stop();
+
 		ui.showOverlay('paused');
+		game.state = 'paused';
 		console.info("game paused");
 	}
 
 	function unpause() {
+		$.Velocity.resumeAll();
 		sounds.unpauseAll();
-		game.state = 'running';
 
 		// Restart generators & animators & timer:
 		runGame();
 
-		// Set everything moving again:
-		resumeBullets();
-		resumePlanes();
-		resumeParas();
-
+		game.state = 'running';
 		console.info("game unpaused");
 	}
 
@@ -1061,7 +1057,7 @@ var Parattack = (function($) {
 						if ($bullet.data("hits") > 0) showCombo(x,y, $bullet.data("hits"));
 
 						// Destroy plane violently:
-						if (plane.el.data("planeType") === 'messerschmitt') plane.dive();
+						if (plane.planeType === 'messerschmitt') plane.dive();
 						else plane.destroy();
 						deregisterBullet($bullet);
 						$bullet.remove();				// Disappear the bullet
@@ -1098,7 +1094,7 @@ var Parattack = (function($) {
 			if (game.entities.pid - plane.el.data("pid") > game.params.maxPlanesPerLevel[game.level-1] + 2) {
 				plane.deregister();
 				plane.el.remove();
-				console.warn("Cleaned up old plane", plane.el.data("pid"));
+				console.warn("Cleaned up old plane", plane.planeID);
 			}
 		}
 		for (var para of game.entities.activeParas) {
@@ -1115,32 +1111,28 @@ var Parattack = (function($) {
 	/*! PLANE FUNCTIONS */
 	/********************/
 	class Plane {
-		constructor(type) {
+		constructor(type) {	// int
 			this.planeType = game.params.planeTypes[type];
 			this.planeSpeed = game.params.planeSpeeds[type];
 			this.planeID = this.planeType + game.entities.pid;				// Make a unique id e.g. "blimp12"
 
-			console.log("Constructing", this.planeID);
 			this.el = $('<div id="'+this.planeID+'"></div>')				// Create a new plane element
 				.addClass('plane')
 				.addClass(this.planeType)										// e.g. "blimp"
 				.data("pid", game.entities.pid)									// e.g. 12
-				.data("speed", this.planeSpeed)									// e.g. 4000
 				.data("type", type)												// e.g. 0
-				.data("planeType", this.planeType)								// e.g. "blimp"
 				.data("ammoBonus", game.params.extraBulletsPerKill[type])		// e.g. 4
 				.prependTo('#gamefield');										// Add it to the document
 
 			// Flip it 50% of the time:
 			if (Math.random() > 0.5) {
-				this.el.addClass('rtl')
-					   .data("dest", -50);
+				this.el.addClass('rtl');
+				this.dest = -50;
 			}
 			else {
-				this.el.addClass('ltr')
-					   .data("dest", 800);
+				this.el.addClass('ltr');
+				this.dest = 800;
 			}
-			console.log(this.el);
 			// Register it:
 			game.entities.activePlanes.push(this);
 			game.entities.pid++;
@@ -1152,9 +1144,11 @@ var Parattack = (function($) {
 		fly() {
 			this.sfx = sounds.playSound(this.planeType);
 
-			var deltaX = this.el.data("dest") - this.el.position().left;
+			var x = this.el.position().left;
+			var deltaX = this.dest - x;
 			var duration = Math.abs(deltaX) / this.planeSpeed;
-			this.el.velocity({translateX: deltaX}, duration, "linear", function() {	// Start it moving
+			console.log(this.planeID, "dest:", this.dest, "dX:", deltaX, "ETA:", duration);
+			this.el.velocity({translateX: deltaX+"px"}, duration, "linear", function() {	// Start it moving
 				// When anim finishes, remove plane:
 				this.deregister();
 				this.el.remove();
@@ -1228,10 +1222,12 @@ var Parattack = (function($) {
 
 			// Set his direction and destination:
 			if (this.el.position().left < 400) {
-				this.el.addClass('left').data("dest", 340);		// left bunker edge
+				this.el.addClass('left');//.ata("est", 340);		// left bunker edge
+				this.dest = 340;
 			}
 			else {
-				this.el.addClass('right').data("dest", 436);	// right bunker edge
+				this.el.addClass('right');//.ata("est", 436);	// right bunker edge
+				this.dest = 436;
 			}
 
 			// Register as air para & increment global para counter:
@@ -1342,9 +1338,9 @@ var Parattack = (function($) {
 			// Whether left or right, simply animate the groundPara towards his dest:
 			this.el.addClass("walking");
 
-			var deltaX = this.el.data('dest') - this.el.position().left;
+			var deltaX = this.dest - this.el.position().left;
 			var duration = Math.abs(deltaX) / game.params.paraWalkSpeed;
-			console.log(this.el.data('dest'), deltaX, duration);
+			console.log(this.dest, deltaX, duration);
 			this.el.velocity({translateX: deltaX+"px"}, duration, "linear", function() {
 				this.reachBunker();
 			}.bind(this));
@@ -1429,46 +1425,6 @@ var Parattack = (function($) {
 							});
 					});
 				});
-			});
-		}
-	}
-
-
-	/************************/
-	/*! ANIMATION FUNCTIONS */
-	/************************/
-	function resumePlanes() {
-		// Resume animation of all stopped planes:
-		for (var plane of game.entities.activePlanes) {
-			plane.fly();
-		}
-	}
-
-	function resumeParas() {
-		// Resume animation of all stopped paras:
-		var para;
-		for (para of game.entities.activeParas) {
-			para.fall();
-		}
-		for (para of game.entities.groundParasL) {
-			para.walk();
-		}
-		for (para of game.entities.groundParasR) {
-			para.walk();
-		}
-	}
-
-	function resumeBullets() {					// Restart bullets on unpause
-		for (var $bullet of game.entities.activeBullets) {
-			var XTarget = $bullet.data("XTarget");		// Read its target
-			var y = parseInt($bullet.css("top"));		// Read its y-coord
-			var oldTime = $bullet.data("bulletTime");	// Read its old travel time
-			var newTime = oldTime * y/548;				// Calculate the new travel time
-
-			$bullet.velocity({translateY:0, "left":XTarget}, newTime, "linear", function() {	// Re-animate the bullet
-				// When anim finishes, remove bullet:
-				$(this).remove();
-				deregisterBullet(this);
 			});
 		}
 	}
