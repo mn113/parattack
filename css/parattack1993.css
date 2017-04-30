@@ -213,10 +213,14 @@
 }
 .para.ground.left {
 	background-position: 0 -190px;
-	animation: para-walk-ltr 1s steps(1, start) infinite;
 }
 .para.ground.right {
 	background-position: -28px -190px;
+}
+.para.ground.left.walking {
+	animation: para-walk-ltr 1s steps(1, start) infinite;
+}
+.para.ground.right.walking {
 	animation: para-walk-rtl 1s steps(1, start) infinite;
 }
 @keyframes para-walk-ltr {

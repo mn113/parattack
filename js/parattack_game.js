@@ -25,17 +25,18 @@ var Parattack = (function($) {
 			musicEnabled: false
 		},
 		params: {
-			paraSpeed:17500,
-			bulletSpeed:0.25,
-			planeTypes:['blimp','cobra','apache','hind','messerschmitt','mig','tomcat'],
-			planeSpeeds:[15000,12000,10000,9000,8000,7000,5000],
-			extraBulletsPerKill:[4,6,7,8,10,13,14,3],
-			killsNeededPerLevel:[25,25,30,30,35,35,40,666],		// Level 8 continues until death
-			maxPlanesPerLevel:[2,2,3,3,4,4,5,5],
-			maxParasPerLevel:[1,2,2,3,3,4,4,5],
-			maxBullets:8,
-			levelIntensities:[0.3, 0.35, 0.4, 0.45, 0.5, 0.55, 0.6, 0.666],
-			comboPoints:[125,250,500,750],
+			paraDropSpeed: 0.03,	// pixels per millisecond?
+			paraWalkSpeed: 0.02,
+			bulletSpeed: 0.25,
+			planeTypes: ['blimp','cobra','apache','hind','messerschmitt','mig','tomcat'],
+			planeSpeeds: [15000,12000,10000,9000,8000,7000,5000],
+			extraBulletsPerKill: [4,6,7,8,10,13,14,3],
+			killsNeededPerLevel: [25,25,30,30,35,35,40,666],		// Level 8 continues until death
+			maxPlanesPerLevel: [2,2,3,3,4,4,5,5],
+			maxParasPerLevel: [1,2,2,3,3,4,4,5],
+			maxBullets: 8,
+			levelIntensities: [0.3, 0.35, 0.4, 0.45, 0.5, 0.55, 0.6, 0.666],
+			comboPoints: [125,250,500,750],
 			planeQuotas: {
 				level1:[.30,.25,.20,.15,.05,.05,.00],			// level 1: 100%
 				level2:[.27,.23,.20,.16,.07,.05,.02],			// level 2: 100%
@@ -375,7 +376,7 @@ var Parattack = (function($) {
 		music2: {url: 'sm2/mp3/music/HeroicDemise.mp3', volume: 50}
 	};
 
-	var activeSounds = [];
+	sounds.activeSounds = [];
 
 	function adjustGameVolume(incr) {	// Normally -10 or +10
 		// Master volume:
@@ -394,20 +395,20 @@ var Parattack = (function($) {
 	function playSound(sound) {
 		if (!game.options.sfxEnabled) return;
 		var snd = new Audio(sounds[sound].url); 	// Audio buffers automatically when created
-		activeSounds.push(snd);					// store it for later access
+		sounds.activeSounds.push(snd);					// store it for later access
 		snd.volume = (game.volume + sounds[sound].volume) / 100;
 		snd.currentTime = sounds[sound].start || 0;
 		snd.play();
 	}
 
 	function pauseAllSounds() {
-		for (var sound of activeSounds) {
+		for (var sound of sounds.activeSounds) {
 			if (!sound.ended && !sound.paused) sound.pause();
 		}
 	}
 
 	function unpauseAllSounds() {
-		for (var sound of activeSounds) {
+		for (var sound of sounds.activeSounds) {
 			if (!sound.ended && sound.paused) sound.play();
 		}
 	}
@@ -898,10 +899,6 @@ var Parattack = (function($) {
 			generateParas();
 		}, 2500);
 
-		this.paraWalk = setInterval(function() {			// Ground paras walk every second
-			walkParas();
-		}, 1000);
-
 		this.cleanup = setInterval(function() {				// Remove expired objects
 			cleanup();
 		}, 4000);
@@ -1239,20 +1236,25 @@ var Parattack = (function($) {
 			game.entities.activeParas.push($para);					// Register para
 			game.entities.mid++;
 
+			// Drift para out of 100px central channel:
 			if (planeX > 350 && planeX <= 400) {
-				$para.velocity({"left":"-=50px", "top":"+=50px"}, 3000);	// Drift para out of 100px central channel
+				$para.velocity({translateX: "-50px", translateY:"50px"}, 3000);
 			}
-			if (planeX > 400 && planeX < 440) {
-				$para.velocity({"left":"+=50px", "top":"+=50px"}, 3000);
+			else if (planeX > 400 && planeX < 450) {
+				$para.velocity({translateX: "50px", translateY:"50px"}, 3000);
 			}
-			if (planeX > 790) {
-				$para.velocity({"left":"-=50px", "top":"+=50px"}, 3000);	// Drift away from screen edges
+			// Drift para away from screen edges:
+			else if (planeX > 790) {
+				$para.velocity({translateX: "-50px", translateY:"50px"}, 3000);
 			}
-			if (planeX < 10 || isNaN(planeX)) {
-				$para.velocity({"left":"+=50px", "top":"+=50px"}, 3000);
+			else if (planeX < 10 || isNaN(planeX)) {
+				$para.velocity({translateX: "50px", translateY:"50px"}, 3000);
 			}
 
-			$para.velocity({"top":"564px"}, game.params.paraSpeed, "linear", function() {	// Drop him
+			// Drop para:
+			var deltaY = 564 - $para.position().top;
+			var duration = deltaY / game.params.paraDropSpeed;
+			$para.velocity({translateY: deltaY+"px"}, duration, "linear", function() {
 				paraLand($para);
 			});
 		}
@@ -1289,7 +1291,7 @@ var Parattack = (function($) {
 	function resumeParas() {
 		for (var $para of game.entities.activeParas) {
 			var y = $para.position().top;						// Get his y-coord
-			var newSpeed = game.params.paraSpeed * (564-y)/564;	// Calculate new drop time
+			var newSpeed = game.params.paraDropSpeed * (564-y)/564;	// Calculate new drop time
 
 			$para.velocity({"top":"564px"}, newSpeed, 'linear', function() {
 				if ($para.position().top === 564) paraLand($para);		// Now he can land
@@ -1301,6 +1303,22 @@ var Parattack = (function($) {
 	/**************************/
 	/*! GROUND PARA FUNCTIONS */
 	/**************************/
+	class Para {
+		constructor(jqEl) {
+			this.el = jqEl;
+		}
+		fall() {}
+		drift() {}
+		die() {}
+		destroy() {}
+		land() {}
+		walk() {}
+		reachBunker() {}
+		storm() {}
+	}
+	var p = new Para($('#bunker'));
+	console.log(p);
+
 	function paraLand($para) {
 		var paraID = $para.attr("id");
 		var groundParaID= 'ground' + paraID;		// His new id
@@ -1314,45 +1332,34 @@ var Parattack = (function($) {
 			   .attr("id", groundParaID);			// Set his new id
 
 		if (x < 400) {
-			$para.addClass('left')					// Set his direction
-				   .data("dest","350px");			// And destination
+			$para.addClass('left').data("dest", 350);	// Set his direction and destination
 			game.entities.groundParasL.push($para);		// Register him in groundParas array
 		}
 		else {
-			$para.addClass('right')
-				   .data("dest","440px");
+			$para.addClass('right').data("dest", 440);
 			game.entities.groundParasR.push($para);
 		}
 		updateStats();
+		paraWalk($para);
 	}
 
-	function walkParas() {
-		var groundParas = game.entities.groundParasL.concat(game.entities.groundParasR);
-		for (var $groundPara of groundParas) {
-
-			var pos = $groundPara.position().left;
-			var dest = parseInt($groundPara.data("dest"));
-
-			if (Math.abs(pos - dest) < 2) {						// If he's really close...
-				reachBunker($groundPara);						// He's allowed to reach the bunker
-			}
-			else {												// Else keep walking...
-				if ($groundPara.hasClass("left")) {							// If he's on the left, walk right
-					$groundPara.velocity({"left":"+=3px"}, 200);
-				}
-				else if ($groundPara.hasClass("right")) {							// If he's on the right, walk left
-					$groundPara.velocity({"left":"-=3px"}, 200);
-				}
-			}
-		}
+	function paraWalk($para) {
+		// Whether left or right, simply animate the groundPara towards his dest:
+		$para.addClass("walking");
+		var deltaX = $para.data('dest') - $para.position().left;
+		var duration = Math.abs(deltaX) / game.params.paraWalkSpeed;
+		console.log($para.data('dest'), deltaX, duration);
+		$para.velocity({translateX: deltaX+"px"}, duration, "linear", function() {
+			reachBunker($para);
+		});
 	}
 
 	function reachBunker($groundPara) {
 		var groundParaID = $groundPara.attr("id");
 		var bunkerParaID = groundParaID.replace('ground','bunker');
+		$groundPara.attr("id", bunkerParaID);				// Add bunker prefix to his id
 		var n = null;
 		var key;
-		$groundPara.attr("id", bunkerParaID);				// Add bunker prefix to his id
 
 		if($groundPara.hasClass("left")) {
 			for (key in game.entities.groundParasL) {					// Find the groundPara's index
@@ -1373,18 +1380,19 @@ var Parattack = (function($) {
 			console.log($groundPara.attr("id") + " arrived at the right bunker");
 		}
 
-		$groundPara.addClass("bunker");			// Causes his walk cycle to stop being called
+		$groundPara.removeClass("walking");
 
-		// Make them line up:
-		var bPL = game.entities.bunkerParasL;
-		var bPR = game.entities.bunkerParasR;
-		for (var i = 0, ll = bPL.length; i < ll; i++) {
-			bPL[i].css("left", 350 - (10*i) + 'px');		// Each new bunkerPara stands 10px back from previous one
+		// Make each new bunkerPara stand 10px back from previous one:
+		var lefties = game.entities.bunkerParasL.length;
+		while (lefties > 0) {
+			$groundPara.css("left","-=10px");
+			lefties--;
 		}
-		for (var j = 0, lr = bPR.length; j < lr; j++) {
-			bPR[j].css("left", 440 + (10*j) + 'px');
+		var righties = game.entities.bunkerParasR.length;
+		while (righties > 0) {
+			$groundPara.css("left","+=10px");
+			righties--;
 		}
-
 		updateStats();
 
 		if (game.entities.bunkerParasL.length >= player.gun.defence) paraBunkerStorm('left');
@@ -1405,7 +1413,7 @@ var Parattack = (function($) {
 							.css("left","440px")
 							.css("top","525px")
 							.appendTo('#gamefield')
-							.velocity({"left":"400px"}, 1000, 'linear', function() {		// Fire a bullet at the gun
+							.velocity({translateX: "-40px"}, 1000, 'linear', function() {		// Fire a bullet at the gun
 								$(this).remove();
 								explodeGun();
 							});
@@ -1421,7 +1429,7 @@ var Parattack = (function($) {
 							.css("left","360px")
 							.css("top","525px")
 							.appendTo('#gamefield')
-							.velocity({"left":"400px"}, 1000, 'linear', function() {		// Fire a bullet at the gun
+							.velocity({translateX:"40px"}, 1000, 'linear', function() {		// Fire a bullet at the gun
 								$(this).remove();
 								explodeGun();
 							});
@@ -1438,17 +1446,17 @@ var Parattack = (function($) {
 	function grenade(side) {
 		var target = (side === 'left') ? '-=30px' : '+=30px'; 	// Aim left or right?
 
-		var $nade = $('<div class="grenade"></div>')			// Create the grenade
-						.appendTo('#gamefield')					// Add it to document
-						.velocity({"left":target,"bottom":"+=30px"}, 250, "swing", function() {				// y upwards
-			   				$(this).velocity({"left":target,"bottom":"18px"}, 200, "swing", function() {		// y downwards
-								playSound('explosion');
-								killGPs($nade.position().left);
-								$nade.velocity({"left":"-=24px"}, 1, function() {	// shift to accommodate explosion sprite
-									explode($nade);
-								});
-							});
-						});
+		var $nade = $('<div class="grenade"></div>');			// Create the grenade
+		$nade.appendTo('#gamefield')					// Add it to document
+			 .velocity({"left":target,"bottom":"+=30px"}, 250, "swing", function() {				// y upwards
+   				$nade.velocity({"left":target,"bottom":"18px"}, 200, "swing", function() {		// y downwards
+					$nade.velocity({"left":"-=24px"}, 1, function() {	// shift to accommodate explosion sprite
+						playSound('explosion');
+						explode($nade);
+						killGPs($nade.position().left);
+					});
+				});
+			});
 		player.grenades--;
 		setGrenades();
 		updateStats();
@@ -1493,7 +1501,7 @@ var Parattack = (function($) {
 		}, 75);				// when driveBy() is called, run collision detection every 75ms
 
 		console.log("Car start");
-		$car.velocity({"left":"800px"}, 2500, 'linear', function() {		// Drive the car
+		$car.velocity({translateX: "850px"}, 2500, 'linear', function() {		// Drive the car
 			$(this).remove();
 			console.log("Car end");
 			clearInterval(detectRunOverParas);	// Screen traversed, stop detecting collisions
@@ -1711,7 +1719,8 @@ var Parattack = (function($) {
 
 	// Reveal the minimum from the module:
 	return {
-		game: game
+		game: game,
+		p: p
 	};
 
 }($));	// pass in jQuery dependency to IIFE
