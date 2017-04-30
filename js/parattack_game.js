@@ -372,7 +372,7 @@ var Parattack = (function($) {
 		splat2: {url: 'sm2/mp3/human/splat2.mp3', volume: 40},
 		splatargh: {url: 'sm2/mp3/human/splatargh.mp3', volume: 40},
 		grenade: {url: 'sm2/mp3/human/fire_in_the_hole.ogg', volume: 50},
-		driveby: {url: 'sm2/mp3/car_driveby.mp3', volume: 50, start: 2},
+		driveby: {url: 'sm2/mp3/car_driveby.mp3', volume: 50, start: 4},
 		bunkerStorm: {url: 'sm2/mp3/bugle64.mp3', volume: 100},
 		victory: {url: 'sm2/mp3/music/BrassVictory.mp3', volume: 50},
 		gameover: {url: 'sm2/mp3/loss.mp3', volume: 50},
@@ -576,7 +576,7 @@ var Parattack = (function($) {
 
 	function pause() {
 		levelTimer.stop();
-		$('#gamefield div').velocity('stop');		// stop everything moving
+		$('#gamefield div').velocity('stop', true);		// stop everything moving
 		sounds.pauseAll();
 		game.state = 'paused';
 
@@ -599,7 +599,6 @@ var Parattack = (function($) {
 		resumeBullets();
 		resumePlanes();
 		resumeParas();
-		// resumeParaWalk();
 
 		console.info("game unpaused");
 	}
@@ -660,13 +659,13 @@ var Parattack = (function($) {
 		// Build new strings:
 		for (var $plane of game.entities.activePlanes) activePlanesString += $plane.attr("id") + ' ';
 		for (var $bullet of game.entities.activeBullets) activeBulletsString += $bullet.attr("id") + ' ';
-		for (var $airPara of game.entities.activeParas) activeAirParasString += $airPara.attr("id") + ' ';
-		for (var $gParaL of game.entities.groundParasL) activeGroundParasString += $gParaL.attr("id") + ' ';
+		for (var $airPara of game.entities.activeParas) activeAirParasString += $airPara.el.attr("id") + ' ';
+		for (var $gParaL of game.entities.groundParasL) activeGroundParasString += $gParaL.el.attr("id") + ' ';
 		activeGroundParasString += '~ ';
-		for (var $gParaR of game.entities.groundParasR) activeGroundParasString += $gParaR.attr("id") + ' ';
-		for (var $bParaL of game.entities.bunkerParasL) activeBunkerParasString += $bParaL.attr("id") + ' ';
+		for (var $gParaR of game.entities.groundParasR) activeGroundParasString += $gParaR.el.attr("id") + ' ';
+		for (var $bParaL of game.entities.bunkerParasL) activeBunkerParasString += $bParaL.el.attr("id") + ' ';
 		activeBunkerParasString += '~ ';
-		for (var $bParaR of game.entities.bunkerParasR) activeBunkerParasString += $bParaR.attr("id") + ' ';
+		for (var $bParaR of game.entities.bunkerParasR) activeBunkerParasString += $bParaR.el.attr("id") + ' ';
 		$('#activePlanes').html(activePlanesString);
 		// Display the strings:
 		$('#activeBullets').html(activeBulletsString);
@@ -959,11 +958,23 @@ var Parattack = (function($) {
 	}
 
 	function generateParas() {		// Generate paras randomly from active planes
-		var r = Math.random();
-		if (r < game.params.levelIntensities[game.level-1] && game.entities.activePlanes.length > 0) {		// 30% to 66% chance we release a new para now
-			var $plane = game.entities.activePlanes[Math.floor((game.entities.activePlanes.length)*Math.random())];	// Select an active plane at random
-			newPara($plane);																// Bombs away!
+		if (game.entities.activePlanes.length > 0) {	// Must have a plane
+			if (game.entities.activeParas.length < game.params.maxParasPerLevel[game.level-1]) {	// Paras not maxed
+				if (Math.random() < game.params.levelIntensities[game.level-1]) {		// 30% to 66% chance we release a new para now
+					// Select plane:
+					var $plane = game.entities.activePlanes[Math.floor((game.entities.activePlanes.length)*Math.random())];	// Select an active plane at random
+					var planeX = $plane.position().left;
+					var planeY = $plane.position().top;
+					// Create para:
+					var para = new Para(planeX + 20, planeY + 15);
+					para.drift().fall();
+				}
+			}
 		}
+	}
+
+	function detectCollisionsPlanes() {
+
 	}
 
 	function detectCollisions() {
@@ -979,18 +990,18 @@ var Parattack = (function($) {
 			}
 
 			// Test against paras first (bullet can pass through them):
-			for (var $para of game.entities.activeParas) {				// 5 air paras max
-				var p = $para.position().left;
-				var q = $para.position().top;
+			for (var para of game.entities.activeParas) {				// 5 air paras max
+				var p = para.el.position().left;
+				var q = para.el.position().top;
 				// Resample bullet position:
 				x = $bullet.position().left;
 				y = $bullet.position().top;
 
 				if (Math.abs(x - p) < 25) {												// Simplistic X-proximity test
 					if ((x >= p - 4 && x <= p + 24) && (y >= q - 4 && y <= q + 24)) {	// Bullet inside para coords (+4px margin)
-						deregisterPara($para);
-						killPara($para);
-						console.log($para.attr("id")+" was hit by "+$bullet.attr("id")+"!");
+						para.die();
+						console.log(para.el.attr("id")+" was hit by "+$bullet.attr("id")+"!");
+						// Stats:
 						game.levelStats.hits++;
 					 	game.levelStats.allKillsThisLevel[7]++;					// Count 1 para kill
 						player.gun.ammo += game.params.extraBulletsPerKill[7];	// Gain his ammo bonus
@@ -1076,22 +1087,22 @@ var Parattack = (function($) {
 		for (var $bullet of game.entities.activeBullets) {				// Problem: the frozen bullets are no longer registered in this array
 			if (game.entities.bid - $bullet.data("bid") > 10) {
 				deregisterBullet($bullet);
-				console.warn("Cleaned up old bullet", $bullet.data("bid"));
 				$bullet.remove();
+				console.warn("Cleaned up old bullet", $bullet.data("bid"));
 			}
 		}
 		for (var $plane of game.entities.activePlanes) {
 			if (game.entities.pid - $plane.data("pid") > game.params.maxPlanesPerLevel[game.level-1] + 2) {
 				deregisterPlane($plane);
-				console.warn("Cleaned up old plane", $plane.data("pid"));
 				$plane.remove();
+				console.warn("Cleaned up old plane", $plane.data("pid"));
 			}
 		}
-		for (var $para of game.entities.activeParas) {
-			if (game.entities.mid - $para.data("mid") > game.params.maxParasPerLevel[game.level-1] + 2) {
-				deregisterPara($para);
-				console.warn("Cleaned up old para", $para.data("mid"));
-				$para.remove();
+		for (var para of game.entities.activeParas) {
+			if (game.entities.mid - para.el.data("mid") > game.params.maxParasPerLevel[game.level-1] + 2) {
+				para.deregister();
+				para.el.remove();
+				console.warn("Cleaned up old para", para.el.data("mid"));
 			}
 		}
 	}
@@ -1157,12 +1168,12 @@ var Parattack = (function($) {
 		var diveMassacre = setInterval(function() {
 			var x = $plane.position().left + 17;		// Use sprite's centre coords
 			var y = $plane.position().top + 20;
-			for (var $para of game.entities.activeParas) {
-				var a = $para.position().left + 10;
-				var b = $para.position().top + 10;
+			for (var para of game.entities.activeParas) {
+				var a = para.el.position().left + 10;
+				var b = para.el.position().top + 10;
 				if (Math.abs(a-x) < 27 && Math.abs(y-b) < 30) {	// Diving plane touches air para
-					console.log($para.attr("id")+" became propellor soup thanks to the crashing "+$plane.attr("id"));
-					killPara($para);
+					console.log(para.el.attr("id")+" became propellor soup thanks to the crashing "+$plane.attr("id"));
+					para.die();
 				}
 			}
 		}, 100);
@@ -1213,6 +1224,224 @@ var Parattack = (function($) {
 		}, 700);
 	}
 
+
+	/*******************/
+	/*! PARA FUNCTIONS */
+	/*******************/
+	class Para {
+		constructor(x,y) {
+			// Create a new para element:
+			this.el = $('<div id="para'+game.entities.mid+'"></div>')
+						.data("mid", game.entities.mid)
+						.addClass('para')
+						.addClass('floating')
+						.css({"left":x+"px", "top":y+"px"})			// Give para the coords
+						.prependTo('#gamefield');			// Add him to the document
+
+			// Set his direction and destination:
+			if (this.el.position().left < 400) {
+				this.el.addClass('left').data("dest", 344);		// left bunker edge
+			}
+			else {
+				this.el.addClass('right').data("dest", 436);	// right bunker edge
+			}
+
+			// Register as air para & increment global para counter:
+			game.entities.activeParas.push(this);
+			game.entities.mid++;
+			return this;
+		}
+
+		fall() {
+			// Drop para:
+			var deltaY = 564 - this.el.position().top;
+			var duration = deltaY / game.params.paraDropSpeed;
+			this.el.velocity({translateY: deltaY+"px"}, duration, "linear", function() {
+				this.land();
+			}.bind(this));
+			return this;
+		}
+
+		drift() {
+			var x = this.el.position().left;
+			// Drift para out of 100px central channel:
+			if (x > 350 && x <= 400) {
+				this.el.velocity({translateX: "-50px", translateY:"50px"}, 3000);
+			}
+			else if (x > 400 && x < 450) {
+				this.el.velocity({translateX: "50px", translateY:"50px"}, 3000);
+			}
+			// Drift para away from screen edges:
+			else if (x > 790) {
+				this.el.velocity({translateX: "-50px", translateY:"50px"}, 3000);
+			}
+			else if (x < 10 || isNaN(x)) {
+				this.el.velocity({translateX: "50px", translateY:"50px"}, 3000);
+			}
+			return this;
+		}
+
+		die() {
+			// Sound effect:
+			var n = 1 + Math.floor(5*Math.random());	// Integer 1-5
+			switch (n) {
+				case 1: sounds.playSound('paraHit1'); break;
+				case 2: sounds.playSound('paraHit2'); break;
+				case 3: sounds.playSound('splat1'); break;
+				case 4: sounds.playSound('splat2'); break;
+				case 5: sounds.playSound('splatargh'); break;
+			}
+			// Show death animation:
+			this.el.velocity('stop', true)	// clearQueue enabled - terminates any earlier animation and guarantees his removal
+				   .removeClass('floating')
+				   .addClass('shot');
+			// Remove him when done:
+			setTimeout(function() {
+				this.deregister();
+				this.el.remove();
+				updateStats();
+			}.bind(this), 700);
+		}
+
+		deregister() {
+			// What type of para to deregister?	para, groundpara, bunkerpara
+			if (this.el.attr("id").startsWith('bunker')) {
+				if (this.el.hasClass('left')) {
+					game.entities.bunkerParasL.splice(game.entities.bunkerParasL.indexOf(this), 1);
+				}
+				else {
+					game.entities.bunkerParasR.splice(game.entities.bunkerParasR.indexOf(this), 1);
+				}
+			}
+			else if (this.el.attr("id").startsWith('ground')) {
+				if (this.el.hasClass('left')) {
+					game.entities.groundParasL.splice(game.entities.groundParasL.indexOf(this), 1);
+				}
+				else {
+					game.entities.groundParasR.splice(game.entities.groundParasR.indexOf(this), 1);
+				}
+			}
+			else if (this.el.attr("id").startsWith('para')) {
+				game.entities.activeParas.splice(game.entities.activeParas.indexOf(this), 1);
+			}
+			updateStats();
+			return this;
+		}
+
+		land() {
+			// Deregister as an air para:
+			this.deregister();
+			this.el.removeClass('floating')
+				   .addClass('ground')
+				   .attr("id", 'ground' + this.el.attr("id"));
+
+			// Re-register as a ground para:
+			if (this.el.hasClass("left")) {
+				game.entities.groundParasL.push(this);
+			}
+			else {
+				game.entities.groundParasR.push(this);
+			}
+
+			game.levelStats.landedParas++;
+			updateStats();
+			this.walk();
+		}
+
+		walk() {
+			// Whether left or right, simply animate the groundPara towards his dest:
+			this.el.addClass("walking");
+			var deltaX = this.el.data('dest') - this.el.position().left;
+			var duration = Math.abs(deltaX) / game.params.paraWalkSpeed;
+			console.log(this.el.data('dest'), deltaX, duration);
+			this.el.velocity({translateX: deltaX+"px"}, duration, "linear", function() {
+				this.reachBunker();
+			}.bind(this));
+		}
+
+		reachBunker() {
+			// Deregister as a ground para:
+			this.deregister();
+			this.el.removeClass("walking");
+			this.el.attr("id", this.el.attr("id").replace('ground','bunker'));
+
+			// Re-register as a bunker para:
+			if(this.el.hasClass("left")) {
+				game.entities.bunkerParasL.push(this);
+				console.log(this.el.attr("id") + " arrived at the left bunker");
+			}
+			else if(this.el.hasClass("right")) {
+				game.entities.bunkerParasR.push(this);
+				console.log(this.el.attr("id") + " arrived at the right bunker");
+			}
+
+			// Make each new bunkerPara queue behind previous ones:
+			var lefties = game.entities.bunkerParasL.length;
+			while (lefties > 0) {
+				this.el.css("left","-=10px");
+				lefties--;
+			}
+			var righties = game.entities.bunkerParasR.length;
+			while (righties > 0) {
+				this.el.css("left","+=10px");
+				righties--;
+			}
+
+			updateStats();
+			if (game.entities.bunkerParasL.length >= player.gun.defence) paraBunkerStorm('left');
+			if (game.entities.bunkerParasR.length >= player.gun.defence) paraBunkerStorm('right');
+		}
+
+		//storm() {}
+	}
+
+	function paraBunkerStorm(side) {
+		// animate paras storming the bunker
+		console.warn('paras are storming your bunker on the '+side+' side!');
+		sounds.playSound('bunkerStorm');
+
+		// rewrite this animation FIXME
+		var stormers;
+		if (side === 'right') {
+			stormers = game.entities.bunkerParasR;
+			stormers[0].el.velocity({"top":"560px","left":"440px"}, 700, 'linear', function() {
+				stormers[1].el.velocity({"top":"542px","left":"440px"}, 800, 'linear', function() {
+					stormers[2].el.velocity({"top":"524px","left":"440px"}, 900, 'linear', function() {
+						$('<div class="bullet"></div>')
+							.css("left","440px")
+							.css("top","525px")
+							.appendTo('#gamefield')
+							.velocity({translateX: "-40px"}, 1000, 'linear', function() {		// Fire a bullet at the gun
+								$(this).remove();
+								explodeGun();
+							});
+					});
+				});
+			});
+		}
+		else if (side === 'left') {
+			stormers = game.entities.bunkerParasL;
+			stormers[0].el.velocity({"top":"560px","left":"350px"}, 700, 'linear', function() {
+				stormers[1].el.velocity({"top":"542px","left":"350px"}, 800, 'linear', function() {
+					stormers[2].el.velocity({"top":"524px","left":"350px"}, 900, 'linear', function() {
+						$('<div class="bullet"></div>')
+							.css("left","360px")
+							.css("top","525px")
+							.appendTo('#gamefield')
+							.velocity({translateX:"40px"}, 1000, 'linear', function() {		// Fire a bullet at the gun
+								$(this).remove();
+								explodeGun();
+							});
+					});
+				});
+			});
+		}
+	}
+
+
+	/************************/
+	/*! ANIMATION FUNCTIONS */	//TODO: combine into single resume fn
+	/************************/
 	function resumePlanes() {
 		for (var $plane of game.entities.activePlanes) {
 			var deltaX = $plane.data("dest") - $plane.position().left;
@@ -1227,228 +1456,17 @@ var Parattack = (function($) {
 		}
 	}
 
-
-	/*******************/
-	/*! PARA FUNCTIONS */
-	/*******************/
-	function newPara($plane) {
-		if (game.entities.activeParas.length < game.params.maxParasPerLevel[game.level-1]) {				// room for another para?
-			var paraID = 'para' + game.entities.mid;										// Make a unique id e.g. "para1"
-
-			var planeX = $plane.position().left;	// Get plane's coords
-			var planeY = $plane.position().top;
-			var dropX = planeX + 'px';				// Para's creation coords
-			var dropY = (planeY + 15 ) + 'px';
-
-			var $para = $('<div id="'+paraID+'"></div>')		// Create a new para element
-					.data("mid", game.entities.mid)
-					.addClass('para')
-					.addClass('floating')
-					.css({"left":dropX, "top":dropY})			// Give para the coords
-					.prependTo('#gamefield');					// Add him to the document
-			game.entities.activeParas.push($para);					// Register para
-			game.entities.mid++;
-
-			// Drift para out of 100px central channel:
-			if (planeX > 350 && planeX <= 400) {
-				$para.velocity({translateX: "-50px", translateY:"50px"}, 3000);
-			}
-			else if (planeX > 400 && planeX < 450) {
-				$para.velocity({translateX: "50px", translateY:"50px"}, 3000);
-			}
-			// Drift para away from screen edges:
-			else if (planeX > 790) {
-				$para.velocity({translateX: "-50px", translateY:"50px"}, 3000);
-			}
-			else if (planeX < 10 || isNaN(planeX)) {
-				$para.velocity({translateX: "50px", translateY:"50px"}, 3000);
-			}
-
-			// Drop para:
-			var deltaY = 564 - $para.position().top;
-			var duration = deltaY / game.params.paraDropSpeed;
-			$para.velocity({translateY: deltaY+"px"}, duration, "linear", function() {
-				paraLand($para);
-			});
-		}
-	}
-
-	function killPara($para) {
-		// Sound effect:
-		var n = 1 + Math.floor(5*Math.random());	// Integer 1-5
-		switch (n) {
-			case 1: sounds.playSound('paraHit1'); break;
-			case 2: sounds.playSound('paraHit2'); break;
-			case 3: sounds.playSound('splat1'); break;
-			case 4: sounds.playSound('splat2'); break;
-			case 5: sounds.playSound('splatargh'); break;
-		}
-
-		$para.velocity('stop', true)	// clearQueue enabled - terminates any earlier animation and guarantees his removal
-			 .removeClass('floating')
-			 .addClass('shot')
-			 .animate({"top":"+=2px"}, 700, function() {
-				$(this).remove();
-			 });
-		updateStats();
-	}
-
-	function deregisterPara($para) {
-		for (var key in game.entities.activeParas) {					// find our expired para's index
-			if (game.entities.activeParas[key] === $para) break;
-		}
-		game.entities.activeParas.splice(key,1);						// remove the expired para
-		updateStats();
-	}
-
 	function resumeParas() {
-		for (var $para of game.entities.activeParas) {
-			var y = $para.position().top;						// Get his y-coord
-			var newSpeed = game.params.paraDropSpeed * (564-y)/564;	// Calculate new drop time
-
-			$para.velocity({"top":"564px"}, newSpeed, 'linear', function() {
-				if ($para.position().top === 564) paraLand($para);		// Now he can land
-			});
+		// Resume animation of all stopped paras:
+		var para;
+		for (para of game.entities.activeParas) {
+			para.fall();
 		}
-	}
-
-
-	/**************************/
-	/*! GROUND PARA FUNCTIONS */
-	/**************************/
-	class Para {
-		constructor(jqEl) {
-			this.el = jqEl;
+		for (para of game.entities.groundParasL) {
+			para.walk();
 		}
-		fall() {}
-		drift() {}
-		die() {}
-		destroy() {}
-		land() {}
-		walk() {}
-		reachBunker() {}
-		storm() {}
-	}
-	var p = new Para($('#bunker'));
-	console.log(p);
-
-	function paraLand($para) {
-		var paraID = $para.attr("id");
-		var groundParaID= 'ground' + paraID;		// His new id
-		var x = $para.position().left;				// His landing spot
-
-		deregisterPara($para);						// Deregister from paras
-		game.levelStats.landedParas++;
-
-		$para.removeClass('floating')					// Convert para to a groundPara
-			   .addClass('ground')
-			   .attr("id", groundParaID);			// Set his new id
-
-		if (x < 400) {
-			$para.addClass('left').data("dest", 350);	// Set his direction and destination
-			game.entities.groundParasL.push($para);		// Register him in groundParas array
-		}
-		else {
-			$para.addClass('right').data("dest", 440);
-			game.entities.groundParasR.push($para);
-		}
-		updateStats();
-		paraWalk($para);
-	}
-
-	function paraWalk($para) {
-		// Whether left or right, simply animate the groundPara towards his dest:
-		$para.addClass("walking");
-		var deltaX = $para.data('dest') - $para.position().left;
-		var duration = Math.abs(deltaX) / game.params.paraWalkSpeed;
-		console.log($para.data('dest'), deltaX, duration);
-		$para.velocity({translateX: deltaX+"px"}, duration, "linear", function() {
-			reachBunker($para);
-		});
-	}
-
-	function reachBunker($groundPara) {
-		var groundParaID = $groundPara.attr("id");
-		var bunkerParaID = groundParaID.replace('ground','bunker');
-		$groundPara.attr("id", bunkerParaID);				// Add bunker prefix to his id
-		var n = null;
-		var key;
-
-		if($groundPara.hasClass("left")) {
-			for (key in game.entities.groundParasL) {					// Find the groundPara's index
-				if (game.entities.groundParasL[key] === $groundPara) n = key;
-			}
-			game.entities.groundParasL.splice(n,1);							// Remove him from groundParas array
-
-			game.entities.bunkerParasL.push($groundPara);					// Register him as a bunker para (L)
-			console.log($groundPara.attr("id") + " arrived at the left bunker");
-		}
-		else if($groundPara.hasClass("right")) {
-			for (key in game.entities.groundParasR) {					// Find the groundPara's index
-				if (game.entities.groundParasR[key] === $groundPara) n=key;
-			}
-			game.entities.groundParasR.splice(n,1);							// Remove him from groundParas array
-
-			game.entities.bunkerParasR.push($groundPara);					// Register him as a bunker para (R)
-			console.log($groundPara.attr("id") + " arrived at the right bunker");
-		}
-
-		$groundPara.removeClass("walking");
-
-		// Make each new bunkerPara stand 10px back from previous one:
-		var lefties = game.entities.bunkerParasL.length;
-		while (lefties > 0) {
-			$groundPara.css("left","-=10px");
-			lefties--;
-		}
-		var righties = game.entities.bunkerParasR.length;
-		while (righties > 0) {
-			$groundPara.css("left","+=10px");
-			righties--;
-		}
-		updateStats();
-
-		if (game.entities.bunkerParasL.length >= player.gun.defence) paraBunkerStorm('left');
-		if (game.entities.bunkerParasR.length >= player.gun.defence) paraBunkerStorm('right');
-	}
-
-	function paraBunkerStorm(side) {
-		// animate paras storming the bunker
-		console.warn('paras are storming your bunker on the '+side+' side!');
-		sounds.playSound('bunkerStorm');
-
-		// FIXME
-		if (side === 'right') {
-			$(game.entities.bunkerParasR[0]).velocity({"top":"560px","left":"440px"}, 700, 'linear', function() {
-				$(game.entities.bunkerParasR[1]).velocity({"top":"542px","left":"440px"}, 800, 'linear', function() {
-					$(game.entities.bunkerParasR[2]).velocity({"top":"524px","left":"440px"}, 900, 'linear', function() {
-						$('<div class="bullet"></div>')
-							.css("left","440px")
-							.css("top","525px")
-							.appendTo('#gamefield')
-							.velocity({translateX: "-40px"}, 1000, 'linear', function() {		// Fire a bullet at the gun
-								$(this).remove();
-								explodeGun();
-							});
-					});
-				});
-			});
-		}
-		else if (side === 'left') {
-			$(game.entities.bunkerParasL[0]).velocity({"top":"560px","left":"350px"}, 700, 'linear', function() {
-				$(game.entities.bunkerParasL[1]).velocity({"top":"542px","left":"350px"}, 800, 'linear', function() {
-					$(game.entities.bunkerParasL[2]).velocity({"top":"524px","left":"350px"}, 900, 'linear', function() {
-						$('<div class="bullet"></div>')
-							.css("left","360px")
-							.css("top","525px")
-							.appendTo('#gamefield')
-							.velocity({translateX:"40px"}, 1000, 'linear', function() {		// Fire a bullet at the gun
-								$(this).remove();
-								explodeGun();
-							});
-					});
-				});
-			});
+		for (para of game.entities.groundParasR) {
+			para.walk();
 		}
 	}
 
@@ -1479,11 +1497,11 @@ var Parattack = (function($) {
 		var groundParas = game.entities.groundParasR.concat(game.entities.groundParasL)
 													.concat(game.entities.bunkerParasR)
 													.concat(game.entities.bunkerParasL);
-		for (var $para of groundParas) {
-			var x = $para.position().left;
-			if (x <= groundzero+20 && x >= groundzero-20) {	// If he's in the blast zone,
-				console.log($para.attr("id")+" is going home in a plastic bag.");
-				$para.remove();
+		for (var para of groundParas) {
+			var x = para.el.position().left;
+			if (x <= groundzero + 20 && x >= groundzero - 20) {	// If he's in the blast zone,
+				console.log(para.el.attr("id")+" is going home in a plastic bag.");
+				para.die();
 				// Play sound if hit:
 				if (Math.random() > 0.5) sounds.playSound('paraHit1');
 				else sounds.playSound('paraHit2');
@@ -1497,18 +1515,17 @@ var Parattack = (function($) {
 		var $car = $('<div id="car"></div>').appendTo('#gamefield');			// Create the car
 		sounds.playSound('driveby');
 		var allParas = game.entities.groundParasL.concat(game.entities.bunkerParasL)
-											.concat(game.entities.bunkerParasR)
-											.concat(game.entities.groundParasR);		// All paras to die
+												 .concat(game.entities.bunkerParasR)
+												 .concat(game.entities.groundParasR);		// All paras to die
 
 		var detectRunOverParas = setInterval(function() {
-			for (var $para of allParas) {
-				var pos = parseInt($para.css("left"));				// Get the para coord
-				var carPos = parseInt($car.css("left"));			// Get the car coord
+			for (var para of allParas) {
+				var paraX = para.el.position().left;	// Get the para coord
+				var carX = $car.position().left;		// Get the car coord
 
-				if (pos >= carPos && pos <= carPos+38) {		// When collision detected,
-					killPara($para);
-					//$para.remove();							// The para dies
-					console.log($para.attr("id")+' got squished!');
+				if (paraX >= carX && paraX <= carX+38) {	// When collision detected,
+					para.die();
+					console.log(para.el.attr("id")+' got squished!');
 				}
 			}
 		}, 75);				// when driveBy() is called, run collision detection every 75ms
@@ -1613,6 +1630,9 @@ var Parattack = (function($) {
 				case 'gfx':
 					game.options.gfxEnabled = (suffix === 'on') ? true : false;
 					break;
+				}
+				if (!game.options.sfxEnabled && !game.options.musicEnabled) {
+					game.options.muted = true;
 				}
 			}
 			return false;	// Whatever it was, don't follow <a href="#">
@@ -1732,8 +1752,7 @@ var Parattack = (function($) {
 
 	// Reveal the minimum from the module:
 	return {
-		game: game,
-		p: p
+		game: game
 	};
 
 }($));	// pass in jQuery dependency to IIFE
