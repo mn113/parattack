@@ -14,6 +14,9 @@
 // Game IIFE
 var Parattack = (function($) {
 
+	/****************/
+	/*! GAME BASICS */
+	/****************/
 	var game = {	// Holds misc vars
 		state: '',
 		lastOverlay: '',
@@ -22,11 +25,12 @@ var Parattack = (function($) {
 		options: {
 			gfxEnabled: false,
 			sfxEnabled: true,
-			musicEnabled: false
+			musicEnabled: false,
+			muted: false
 		},
 		params: {
 			paraDropSpeed: 0.03,	// pixels per millisecond?
-			paraWalkSpeed: 0.02,
+			paraWalkSpeed: 0.015,
 			bulletSpeed: 0.25,
 			planeTypes: ['blimp','cobra','apache','hind','messerschmitt','mig','tomcat'],
 			planeSpeeds: [15000,12000,10000,9000,8000,7000,5000],
@@ -178,48 +182,48 @@ var Parattack = (function($) {
 	var levelTimer = {
 		startTime: null,
 		stopTime: null,
-		elapsed: 0,
+		elapsed: 0
+	};
 
-		start: function() {
-			var tstart = new Date();
-			this.startTime = tstart.getTime();
-		},
+	levelTimer.start = function() {
+		var tstart = new Date();
+		this.startTime = tstart.getTime();
+	};
 
-		stop: function() {
-			var tstop = new Date();
-			this.stopTime = tstop.getTime();
-			this.elapsed += Math.floor(0.001*(this.stopTime - this.startTime));		// store what's elapsed so far (in seconds)
-			return this.elapsed;
-		},
+	levelTimer.stop = function() {
+		var tstop = new Date();
+		this.stopTime = tstop.getTime();
+		this.elapsed += Math.floor(0.001*(this.stopTime - this.startTime));		// store what's elapsed so far (in seconds)
+		return this.elapsed;
+	};
 
-		reset: function() {
-			this.elapsed = 0;
-		},
+	levelTimer.reset = function() {
+		this.elapsed = 0;
+	};
 
-		formatTime: function() {
-			var e = this.elapsed;		// in seconds
-			var h = Math.floor(e/3600);	// number of whole hours (typically 0)
-			var r = e%3600;				// remainder in seconds
-			var m = Math.floor(r/60);	// number of whole minutes
-			var s = e%60;				// number of whole seconds
+	levelTimer.formatTime = function() {
+		var e = this.elapsed;		// in seconds
+		var h = Math.floor(e/3600);	// number of whole hours (typically 0)
+		var r = e%3600;				// remainder in seconds
+		var m = Math.floor(r/60);	// number of whole minutes
+		var s = e%60;				// number of whole seconds
 
-			if (s<10) s = '0'+s;	// add leading zero
+		if (s<10) s = '0'+s;	// add leading zero
 
-			var timeString = '';
-			if (h>0) {
-				if (m<10) m = '0'+m;		// add leading zero
-				timeString = h+':'+m+':'+s;	// hours, minutes, seconds
-			}
-			else {
-				timeString = m+':'+s;		// minutes, seconds
-			}
-			return timeString;
+		var timeString = '';
+		if (h>0) {
+			if (m<10) m = '0'+m;		// add leading zero
+			timeString = h+':'+m+':'+s;	// hours, minutes, seconds
 		}
+		else {
+			timeString = m+':'+s;		// minutes, seconds
+		}
+		return timeString;
 	};
 
 
 	/******************/
-	/*! AJAX OVERLAYS */
+	/*! HTML OVERLAYS */
 	/******************/
 	var ui = {
 		showOverlay: function(overlay, type) {
@@ -378,40 +382,42 @@ var Parattack = (function($) {
 
 	sounds.activeSounds = [];
 
-	function adjustGameVolume(incr) {	// Normally -10 or +10
+	sounds.adjustGameVolume = function(incr) {	// Normally -10 or +10
 		// Master volume:
 		if (game.volume + incr >= -50 && game.volume + incr <= 50) {	// Stay in -+50 range
 			game.volume += incr;
 		}
 		console.log("Game volume:", game.volume);
-		$('#volumewidget span').html(game.volume);					// Update display
-		$('#vol_mute').css("width", 15+(0.2*game.volume)+"px");	// Make the volume icon longer or shorter (15-28px)
-	}
+		$('#volumewidget span').html(game.volume);				// Update display
+		$('#vol_mute').css("width", 20+(0.1*game.volume)+"px");	// Make the volume icon longer or shorter (15-28px)
+	};
 
-	function gameMuteToggle() {
-		game.options.sfxEnabled = !game.options.sfxEnabled;		//FIXME: better to set to 0, than disable playing?
-	}
+	sounds.gameMuteToggle = function() {
+		game.options.muted = !game.options.muted;
+		game.options.sfxEnabled = !game.options.muted;
+		game.options.musicEnabled = !game.options.muted;	// Doesn't allow selective muting, but this is an edge case
+	};
 
-	function playSound(sound) {
+	sounds.playSound = function(sound) {
 		if (!game.options.sfxEnabled) return;
 		var snd = new Audio(sounds[sound].url); 	// Audio buffers automatically when created
 		sounds.activeSounds.push(snd);					// store it for later access
 		snd.volume = (game.volume + sounds[sound].volume) / 100;
 		snd.currentTime = sounds[sound].start || 0;
 		snd.play();
-	}
+	};
 
-	function pauseAllSounds() {
+	sounds.pauseAll = function() {
 		for (var sound of sounds.activeSounds) {
 			if (!sound.ended && !sound.paused) sound.pause();
 		}
-	}
+	};
 
-	function unpauseAllSounds() {
+	sounds.unpauseAll = function() {
 		for (var sound of sounds.activeSounds) {
 			if (!sound.ended && sound.paused) sound.play();
 		}
-	}
+	};
 
 
 	/*********/
@@ -548,7 +554,7 @@ var Parattack = (function($) {
 
 	function levelIntro(n) {		// Make the biplane fly across screen with level name
 		game.state = 'intro';
-		playSound('introPlane');
+		sounds.playSound('introPlane');
 		var $biplane = $('<div id="introplane"><span class="level'+n+'"></span></div>');
 		$biplane.prependTo('#gamefield')
 				.velocity({translateX:"-1050px"}, 5000, 'linear', function() {
@@ -571,7 +577,7 @@ var Parattack = (function($) {
 	function pause() {
 		levelTimer.stop();
 		$('#gamefield div').velocity('stop');		// stop everything moving
-		pauseAllSounds();
+		sounds.pauseAll();
 		game.state = 'paused';
 
 		// Clear generators & animators
@@ -583,7 +589,7 @@ var Parattack = (function($) {
 	}
 
 	function unpause() {
-		unpauseAllSounds();
+		sounds.unpauseAll();
 		game.state = 'running';
 
 		// Restart generators & animators & timer:
@@ -628,11 +634,11 @@ var Parattack = (function($) {
 
 		if (reason === 1) {										// reason 1 = victory (reached required kills total)
 			var type = (game.levelStats.landedParas === 0) ? 1 : 0;		// victory type 1 = flawless victory (no landings)
-			playSound('victory');
+			sounds.playSound('victory');
 			ui.showOverlay('victory', type);
 		}
 		else {
-			playSound('gameover');
+			sounds.playSound('gameover');
 			ui.showOverlay('gameover', reason);
 		}
 	}
@@ -768,7 +774,7 @@ var Parattack = (function($) {
 	}
 
 	function explodeGun() {
-		playSound('explosion');
+		sounds.playSound('explosion');
 		game.state = '';							// Disable key input
 		$('#gun').removeClass()
 			     .css({"left":"-=12px"})			// Shift left to accommodate explosion sprite
@@ -812,7 +818,7 @@ var Parattack = (function($) {
 				deregisterBullet(this);
 			});
 
-			playSound('bullet');
+			sounds.playSound('bullet');
 			game.levelStats.bulletsFired++;
 			player.gun.ammo--;
 			testAmmoDepletion();		// Check if ammo stuck on zero
@@ -849,8 +855,8 @@ var Parattack = (function($) {
 	function showCombo(x,y,hits) {
 		$('.combo').remove();								// Clear all previous combo icons
 		var points = game.params.comboPoints[(hits-1)%4];	// 125, 250, 500 or 750
-		if (points <= 125) playSound('combo1');
-		else playSound('combo2');
+		if (points <= 125) sounds.playSound('combo1');
+		else sounds.playSound('combo2');
 		var $comboHtml = $('<div class="combo"></div>');
 		$comboHtml.addClass('p'+points)
 				  .prependTo('#gamefield')
@@ -1121,7 +1127,7 @@ var Parattack = (function($) {
 			game.entities.activePlanes.push($plane);							// Register "blimp12" as active
 			game.entities.pid++;
 
-			playSound(planeType);
+			sounds.playSound(planeType);
 
 			var deltaX = $plane.data("dest") - $plane.position().left;
 			$plane.velocity({translateX: deltaX}, planeSpeed, "linear", function() {	// Start it moving
@@ -1145,7 +1151,7 @@ var Parattack = (function($) {
 	}
 
 	function divePlane($plane) {			// Make Messerschmitts dive and crash
-		playSound('dive');
+		sounds.playSound('dive');
 
 		// Detect collisions with airborne paras:
 		var diveMassacre = setInterval(function() {
@@ -1170,7 +1176,7 @@ var Parattack = (function($) {
 
 					//explode($plane);		// CAUSES FREEZING FIXME
 					// explode() function duplicated here:	// WASTEFUL!
-					playSound('explosion');		// BOOM!
+					sounds.playSound('explosion');		// BOOM!
 					$plane.velocity('stop')
 						  .removeClass('rtl ltr')
 						  .addClass('exploding');	// 0.7s animation
@@ -1196,7 +1202,7 @@ var Parattack = (function($) {
 	}
 
 	function explode($obj) {
-		playSound('explosion');
+		sounds.playSound('explosion');
 		$obj.velocity('stop', true)	// clearQueue enabled
 			.removeClass('rtl ltr grenade')
 			.addClass('exploding');	// 0.7s animation
@@ -1271,11 +1277,11 @@ var Parattack = (function($) {
 		// Sound effect:
 		var n = 1 + Math.floor(5*Math.random());	// Integer 1-5
 		switch (n) {
-			case 1: playSound('paraHit1'); break;
-			case 2: playSound('paraHit2'); break;
-			case 3: playSound('splat1'); break;
-			case 4: playSound('splat2'); break;
-			case 5: playSound('splatargh'); break;
+			case 1: sounds.playSound('paraHit1'); break;
+			case 2: sounds.playSound('paraHit2'); break;
+			case 3: sounds.playSound('splat1'); break;
+			case 4: sounds.playSound('splat2'); break;
+			case 5: sounds.playSound('splatargh'); break;
 		}
 
 		$para.velocity('stop', true)	// clearQueue enabled - terminates any earlier animation and guarantees his removal
@@ -1409,7 +1415,7 @@ var Parattack = (function($) {
 	function paraBunkerStorm(side) {
 		// animate paras storming the bunker
 		console.warn('paras are storming your bunker on the '+side+' side!');
-		playSound('bunkerStorm');
+		sounds.playSound('bunkerStorm');
 
 		// FIXME
 		if (side === 'right') {
@@ -1458,7 +1464,7 @@ var Parattack = (function($) {
 			 .velocity({"left":target,"bottom":"+=30px"}, 250, "swing", function() {				// y upwards
    				$nade.velocity({"left":target,"bottom":"18px"}, 200, "swing", function() {		// y downwards
 					$nade.velocity({"left":"-=24px"}, 1, function() {	// shift to accommodate explosion sprite
-						playSound('explosion');
+						sounds.playSound('explosion');
 						explode($nade);
 						killGPs($nade.position().left);
 					});
@@ -1479,8 +1485,8 @@ var Parattack = (function($) {
 				console.log($para.attr("id")+" is going home in a plastic bag.");
 				$para.remove();
 				// Play sound if hit:
-				if (Math.random() > 0.5) playSound('paraHit1');
-				else playSound('paraHit2');
+				if (Math.random() > 0.5) sounds.playSound('paraHit1');
+				else sounds.playSound('paraHit2');
 			}
 		}
 		rebuildGroundArrays();
@@ -1489,7 +1495,7 @@ var Parattack = (function($) {
 
 	function driveBy() {
 		var $car = $('<div id="car"></div>').appendTo('#gamefield');			// Create the car
-		playSound('driveby');
+		sounds.playSound('driveby');
 		var allParas = game.entities.groundParasL.concat(game.entities.bunkerParasL)
 											.concat(game.entities.bunkerParasR)
 											.concat(game.entities.groundParasR);		// All paras to die
@@ -1540,10 +1546,6 @@ var Parattack = (function($) {
 	/*! jQuery document.ready() { */
 	$(function() {	// on document ready:
 
-		$.ajaxSetup ({
-			cache: true
-		});
-
 		/***************/
 		/*! CLICKABLES */
 		/***************/
@@ -1552,7 +1554,7 @@ var Parattack = (function($) {
 			var clickedID = e.target.id;
 
 			if ($(e.target).hasClass('button')) {
-				playSound('click');
+				sounds.playSound('click');
 
 				switch(clickedID) {
 				case 'startgame':
@@ -1622,14 +1624,14 @@ var Parattack = (function($) {
 
 			if (game.state === 'running') {
 				if (clickedID === 'vol_mute') {
-					gameMuteToggle();
+					sounds.gameMuteToggle();
 					$(e.target).toggleClass('muted').toggleClass('unmuted');	// Change icon
 				}
 				else if (clickedID === 'vol_down') {
-					adjustGameVolume(-10);
+					sounds.adjustGameVolume(-10);
 				}
 				else if (clickedID === 'vol_up') {
-					adjustGameVolume(+10);
+					sounds.adjustGameVolume(+10);
 				}
 				else {
 					$('#tooltip').css("left", e.pageX)			// Position the hidden tooltip div at the mouse pointer
