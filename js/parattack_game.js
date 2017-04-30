@@ -33,7 +33,7 @@ var Parattack = (function($) {
 			paraWalkSpeed: 0.015,
 			bulletSpeed: 0.25,
 			planeTypes: ['blimp','cobra','apache','hind','messerschmitt','mig','tomcat'],
-			planeSpeeds: [15000,12000,10000,9000,8000,7000,5000],
+			planeSpeeds: [0.056,0.07,0.085,0.094,0.1,0.12,0.17],
 			extraBulletsPerKill: [4,6,7,8,10,13,14,3],
 			killsNeededPerLevel: [25,25,30,30,35,35,40,666],		// Level 8 continues until death
 			maxPlanesPerLevel: [2,2,3,3,4,4,5,5],
@@ -99,7 +99,12 @@ var Parattack = (function($) {
 	};
 
 	game.levelStats.resetAll = function() {
-		// reset method to replace code in startLevel() function
+		// TODO write reset method to replace code in startLevel() function
+	};
+
+	game.levelStats.checkKills = function() {
+		if (game.levelStats.planeKills % 40 === 0) $('#killCount').html();			// Reset kill icons after 40
+		if (game.levelStats.planeKills >= game.levelStats.killsNeeded) gameOver(1);		// Enough kills to beat the level!
 	};
 
 	game.levelStats.scores.calcScore = function() {
@@ -380,7 +385,7 @@ var Parattack = (function($) {
 		music2: {url: 'sm2/mp3/music/HeroicDemise.mp3', volume: 50}
 	};
 
-	sounds.activeSounds = [];
+	sounds.activeSounds = [];	// Let all the sound objects (playing|paused|ended) build up here
 
 	sounds.adjustGameVolume = function(incr) {	// Normally -10 or +10
 		// Master volume:
@@ -400,11 +405,14 @@ var Parattack = (function($) {
 
 	sounds.playSound = function(sound) {
 		if (!game.options.sfxEnabled) return;
+
 		var snd = new Audio(sounds[sound].url); 	// Audio buffers automatically when created
 		sounds.activeSounds.push(snd);					// store it for later access
 		snd.volume = (game.volume + sounds[sound].volume) / 100;
 		snd.currentTime = sounds[sound].start || 0;
 		snd.play();
+
+		return snd;		// For assignment to a parent element
 	};
 
 	sounds.pauseAll = function() {
@@ -613,7 +621,7 @@ var Parattack = (function($) {
 		game.levelStats.levelTime = levelTimer.stop();	// Stop the stopwatch (total seconds)
 		$('#gamefield div').velocity('stop', true);			// Stop everything moving
 		game.state = 'between';
-		//sm2.stopAll();
+		sounds.pauseAll();
 
 		// Stop the generators:
 		loops.stopAll();
@@ -646,7 +654,7 @@ var Parattack = (function($) {
 	/********************/
 	/*! STATS FUNCTIONS */
 	/********************/
-	function updateStats() {
+	function updateDebuggingStats() {
 		$('#ammo').html(formatAmmo(player.gun.ammo));
 
 		// Print list of planeIDs, bulletIDs & paraIDs for debugging
@@ -657,15 +665,15 @@ var Parattack = (function($) {
 		var activeGroundParasString = '';
 		var activeBunkerParasString = '';
 		// Build new strings:
-		for (var $plane of game.entities.activePlanes) activePlanesString += $plane.attr("id") + ' ';
+		for (var plane of game.entities.activePlanes) activePlanesString += plane.el.attr("id") + ' ';
 		for (var $bullet of game.entities.activeBullets) activeBulletsString += $bullet.attr("id") + ' ';
-		for (var $airPara of game.entities.activeParas) activeAirParasString += $airPara.el.attr("id") + ' ';
-		for (var $gParaL of game.entities.groundParasL) activeGroundParasString += $gParaL.el.attr("id") + ' ';
+		for (var airPara of game.entities.activeParas) activeAirParasString += airPara.el.attr("id") + ' ';
+		for (var gParaL of game.entities.groundParasL) activeGroundParasString += gParaL.el.attr("id") + ' ';
 		activeGroundParasString += '~ ';
-		for (var $gParaR of game.entities.groundParasR) activeGroundParasString += $gParaR.el.attr("id") + ' ';
-		for (var $bParaL of game.entities.bunkerParasL) activeBunkerParasString += $bParaL.el.attr("id") + ' ';
+		for (var gParaR of game.entities.groundParasR) activeGroundParasString += gParaR.el.attr("id") + ' ';
+		for (var bParaL of game.entities.bunkerParasL) activeBunkerParasString += bParaL.el.attr("id") + ' ';
 		activeBunkerParasString += '~ ';
-		for (var $bParaR of game.entities.bunkerParasR) activeBunkerParasString += $bParaR.el.attr("id") + ' ';
+		for (var bParaR of game.entities.bunkerParasR) activeBunkerParasString += bParaR.el.attr("id") + ' ';
 		$('#activePlanes').html(activePlanesString);
 		// Display the strings:
 		$('#activeBullets').html(activeBulletsString);
@@ -762,7 +770,7 @@ var Parattack = (function($) {
 		else $gun.addClass('angle90');
 
 		findTarget();
-		updateStats();
+		updateDebuggingStats();
 	}
 
 	function findTarget(gunAngle) {
@@ -821,7 +829,7 @@ var Parattack = (function($) {
 			game.levelStats.bulletsFired++;
 			player.gun.ammo--;
 			testAmmoDepletion();		// Check if ammo stuck on zero
-			updateStats();
+			updateDebuggingStats();
 		}
 	}
 
@@ -833,22 +841,7 @@ var Parattack = (function($) {
 			}
 		}
 		game.entities.activeBullets.splice(key,1);							// remove the expired bullet
-		updateStats();
-	}
-
-	function resumeBullets() {					// Restart bullets on unpause
-		for (var $bullet of game.entities.activeBullets) {
-			var XTarget = $bullet.data("XTarget");		// Read its target
-			var y = parseInt($bullet.css("top"));		// Read its y-coord
-			var oldTime = $bullet.data("bulletTime");	// Read its old travel time
-			var newTime = oldTime * y/548;				// Calculate the new travel time
-
-			$bullet.velocity({translateY:0, "left":XTarget}, newTime, "linear", function() {	// Re-animate the bullet
-				// When anim finishes, remove bullet:
-				$(this).remove();
-				deregisterBullet(this);
-			});
-		}
+		updateDebuggingStats();
 	}
 
 	function showCombo(x,y,hits) {
@@ -893,7 +886,6 @@ var Parattack = (function($) {
 		collisionLoop: null,
 		planeGen: null,
 		paraGen: null,
-		paraWalk: null,
 		driveByCheck: null,
 		cleanup: null
 	};
@@ -942,16 +934,19 @@ var Parattack = (function($) {
 	/*! CONTINUOUSLY RUNNING FUNCTIONS */
 	/***********************************/
 	function generatePlanes() {		// Generate planes randomly, based on quotas & level
-		var r = Math.random();
-		if (r < game.params.levelIntensities[game.level-1]) {	// 30% to 66% chance we make a new plane this time
-			var rn = Math.random();
-			var thr = 0;								// Threshold starts at 0
+		if (game.entities.activePlanes.length < game.params.maxPlanesPerLevel[game.level-1]) {		// room for another plane?
+			if (Math.random() < game.params.levelIntensities[game.level-1]) {	// 30% to 66% chance we make a new plane this time
+				var rn = Math.random();
+				var instantiationThreshold = 0;
 
-			for (var i = 0; i < 7; i++) { 	// For each plane's quota:
-				thr += game.params.planeQuotas['level'+game.level][i];	// Set threshold for that plane
-				if (rn < thr) {										// Test it
-					newPlane(i);									// If true, create that plane
-					break;											// And stop testing
+				// Loop through plane types, increasing threshold:
+				for (var i = 0; i < 7; i++) {
+					instantiationThreshold += game.params.planeQuotas['level'+game.level][i];
+					if (rn < instantiationThreshold) {			// Test it
+						var plane = new Plane(i);				// If true, create that plane
+						plane.fly();
+						break;									// And stop testing
+					}
 				}
 			}
 		}
@@ -962,9 +957,9 @@ var Parattack = (function($) {
 			if (game.entities.activeParas.length < game.params.maxParasPerLevel[game.level-1]) {	// Paras not maxed
 				if (Math.random() < game.params.levelIntensities[game.level-1]) {		// 30% to 66% chance we release a new para now
 					// Select plane:
-					var $plane = game.entities.activePlanes[Math.floor((game.entities.activePlanes.length)*Math.random())];	// Select an active plane at random
-					var planeX = $plane.position().left;
-					var planeY = $plane.position().top;
+					var plane = game.entities.activePlanes[Math.floor((game.entities.activePlanes.length)*Math.random())];	// Select an active plane at random
+					var planeX = plane.el.position().left;
+					var planeY = plane.el.position().top;
 					// Create para:
 					var para = new Para(planeX + 20, planeY + 15);
 					para.drift().fall();
@@ -1024,9 +1019,9 @@ var Parattack = (function($) {
 
 			// Test against planes only when bullet is in the plane zone:
 			if (y < 100) {
-				for (var $plane of game.entities.activePlanes) {			// 5 planes max
-					var a = $plane.position().left;
-					var b = $plane.position().top;
+				for (var plane of game.entities.activePlanes) {			// 5 planes max
+					var a = plane.el.position().left;
+					var b = plane.el.position().top;
 					// Resample bullet position:
 					x = $bullet.position().left;
 					y = $bullet.position().top;
@@ -1034,17 +1029,17 @@ var Parattack = (function($) {
 					var withinX = (x >= a - 2 && x <= a + 50);
 					var withinY = (y >= b - 2 && y <= b + 22);
 
-					console.log($plane.attr('id'), "+", $bullet.attr('id'), "proximity ([", x, ",", a, "], [", y, ",", b, "])", withinX, withinY);
+					console.log(plane.el.attr('id'), "+", $bullet.attr('id'), "proximity ([", x, ",", a, "], [", y, ",", b, "])", withinX, withinY);
 
 					if (withinX) {		// Simplistic proximity test
 						if (withinY) {	// Bullet inside plane coords (+2px margin)
 							// Update kill stats:
 							game.levelStats.hits++;
 							game.levelStats.planeKills++;
-						 	game.levelStats.allKillsThisLevel[$plane.data("type")]++;	// Count 1 kill
+						 	game.levelStats.allKillsThisLevel[plane.el.data("type")]++;	// Count 1 kill
 							$('<div class="kill"></div>').appendTo('#killCount');		// Add 1 kill icon to counter
-						 	player.gun.ammo += $plane.data("ammoBonus");				// Gain its ammo bonus
-							console.info($plane.attr("id")+" was hit by "+$bullet.attr("id")+"! ("+game.levelStats.planeKills+"k)");
+						 	player.gun.ammo += plane.el.data("ammoBonus");				// Gain its ammo bonus
+							console.info(plane.el.attr("id")+" was hit by "+$bullet.attr("id")+"! ("+game.levelStats.planeKills+"k)");
 
 							// Combo test:
 							var hid = $bullet.data("bid");					// hitID
@@ -1056,9 +1051,8 @@ var Parattack = (function($) {
 							if ($bullet.data("hits") > 0) showCombo(x,y, $bullet.data("hits"));
 
 							// Destroy plane violently:
-							if ($plane.data("planeType") === 'messerschmitt') divePlane($plane);
-							else explodePlane($plane);
-							deregisterPlane($plane);		// Deregister plane (no more collision tests)
+							if (plane.el.data("planeType") === 'messerschmitt') plane.dive();
+							else plane.destroy().deregister();
 							deregisterBullet($bullet);
 							$bullet.remove();				// Disappear the bullet
 
@@ -1091,11 +1085,11 @@ var Parattack = (function($) {
 				console.warn("Cleaned up old bullet", $bullet.data("bid"));
 			}
 		}
-		for (var $plane of game.entities.activePlanes) {
-			if (game.entities.pid - $plane.data("pid") > game.params.maxPlanesPerLevel[game.level-1] + 2) {
-				deregisterPlane($plane);
-				$plane.remove();
-				console.warn("Cleaned up old plane", $plane.data("pid"));
+		for (var plane of game.entities.activePlanes) {
+			if (game.entities.pid - plane.el.data("pid") > game.params.maxPlanesPerLevel[game.level-1] + 2) {
+				plane.deregister();
+				plane.el.remove();
+				console.warn("Cleaned up old plane", plane.el.data("pid"));
 			}
 		}
 		for (var para of game.entities.activeParas) {
@@ -1111,117 +1105,100 @@ var Parattack = (function($) {
 	/********************/
 	/*! PLANE FUNCTIONS */
 	/********************/
-	function newPlane(type) {
-		if (game.entities.activePlanes.length < game.params.maxPlanesPerLevel[game.level-1]) {		// room for another plane?
-			var planeType = game.params.planeTypes[type];
-			var planeSpeed = game.params.planeSpeeds[type];
-			var planeID = planeType + game.entities.pid;								// Make a unique id e.g. "blimp12"
+	class Plane {
+		constructor(type) {
+			this.planeType = game.params.planeTypes[type];
+			this.planeSpeed = game.params.planeSpeeds[type];
+			this.planeID = this.planeType + game.entities.pid;				// Make a unique id e.g. "blimp12"
 
-			var $plane = $('<div id="'+planeID+'"></div>')						// Create a new plane element
+			console.log("Constructing", this.planeID);
+			this.el = $('<div id="'+this.planeID+'"></div>')				// Create a new plane element
 				.addClass('plane')
-				.addClass(planeType)											// e.g. "blimp"
+				.addClass(this.planeType)										// e.g. "blimp"
 				.data("pid", game.entities.pid)									// e.g. 12
-				.data("speed", planeSpeed)										// e.g. 4000
+				.data("speed", this.planeSpeed)									// e.g. 4000
 				.data("type", type)												// e.g. 0
-				.data("planeType", planeType)									// e.g. "blimp"
+				.data("planeType", this.planeType)								// e.g. "blimp"
 				.data("ammoBonus", game.params.extraBulletsPerKill[type])		// e.g. 4
 				.prependTo('#gamefield');										// Add it to the document
+
 			// Flip it 50% of the time:
 			if (Math.random() > 0.5) {
-				$plane.addClass('rtl')
-					  .data("dest", -50);
+				this.el.addClass('rtl')
+					   .data("dest", -50);
 			}
 			else {
-				$plane.addClass('ltr')
-					  .data("dest", 800);
+				this.el.addClass('ltr')
+					   .data("dest", 800);
 			}
-			game.entities.activePlanes.push($plane);							// Register "blimp12" as active
+			console.log(this.el);
+			// Register it:
+			game.entities.activePlanes.push(this);
 			game.entities.pid++;
+			updateDebuggingStats();
 
-			sounds.playSound(planeType);
+			return this;
+		}
 
-			var deltaX = $plane.data("dest") - $plane.position().left;
-			$plane.velocity({translateX: deltaX}, planeSpeed, "linear", function() {	// Start it moving
+		fly() {
+			this.sfx = sounds.playSound(this.planeType);
+
+			var deltaX = this.el.data("dest") - this.el.position().left;
+			var duration = Math.abs(deltaX) / this.planeSpeed;
+			this.el.velocity({translateX: deltaX}, duration, "linear", function() {	// Start it moving
 				// When anim finishes, remove plane:
-				deregisterPlane($plane);
-				$(this).remove();
-			});
-			updateStats();
+				this.deregister();
+				this.el.remove();
+			}.bind(this));
+			return this;
 		}
-	}
 
-	function deregisterPlane($plane) {
-		var l = game.entities.activePlanes.length;
-		for (var i = 0; i < l; i++) {							// Find our expired plane's index
-			if (game.entities.activePlanes[i] === $plane) {
-				game.entities.activePlanes.splice(i,1);			// Remove the expired plane
-				break;
-			}
+		deregister() {
+			game.entities.activePlanes.splice(game.entities.activePlanes.indexOf(this), 1);
+			updateDebuggingStats();
+			return this;
 		}
-		updateStats();
-	}
 
-	function divePlane($plane) {			// Make Messerschmitts dive and crash
-		sounds.playSound('dive');
+		dive() {
+			sounds.playSound('dive');
 
-		// Detect collisions with airborne paras:
-		var diveMassacre = setInterval(function() {
-			var x = $plane.position().left + 17;		// Use sprite's centre coords
-			var y = $plane.position().top + 20;
-			for (var para of game.entities.activeParas) {
-				var a = para.el.position().left + 10;
-				var b = para.el.position().top + 10;
-				if (Math.abs(a-x) < 27 && Math.abs(y-b) < 30) {	// Diving plane touches air para
-					console.log(para.el.attr("id")+" became propellor soup thanks to the crashing "+$plane.attr("id"));
-					para.die();
+			// Detect collisions with airborne paras:
+			var diveMassacre = setInterval(function() {
+				var x = this.el.position().left + 17;		// Use sprite's centre coords
+				var y = this.el.position().top + 20;
+				for (var para of game.entities.activeParas) {
+					var a = para.el.position().left + 10;
+					var b = para.el.position().top + 10;
+					if (Math.abs(a-x) < 27 && Math.abs(y-b) < 30) {	// Diving plane touches air para
+						console.log(para.el.attr("id") + " became propellor soup thanks to the crashing " + this.el.attr("id"));
+						para.die();
+					}
 				}
-			}
-		}, 100);
+			}.bind(this), 100);
 
-		var translateX = ($plane.hasClass('ltr')) ? "350px" : "-350px";
-		$plane.velocity('stop', true)	// clearQueue on
-			  .addClass('diving')				// Needs to dive from y=65 to y=542
-			  .velocity({translateX: translateX, translateY: "493px"}, 1000, 'linear', function() {	// Dive
-					clearInterval(diveMassacre);		// Stop detection of air paras
-					killGPs($plane.position().left);	// Kill the paras it landed on
+			var translateX = (this.el.hasClass('ltr')) ? "350px" : "-350px";
+			this.el.velocity('stop', true)	// clearQueue on
+				   .addClass('diving')				// Needs to dive from y=65 to y=542
+				   .velocity({translateX: translateX, translateY: "493px"}, 1000, 'linear', function() {	// Dive
+						// Crash land:
+						clearInterval(diveMassacre);		// Stop detection of air paras
+						this.destroy();
+						killGPs(this.el.position().left);	// Kill the paras it landed on
+				  }.bind(this));
 
-					//explode($plane);		// CAUSES FREEZING FIXME
-					// explode() function duplicated here:	// WASTEFUL!
-					sounds.playSound('explosion');		// BOOM!
-					$plane.velocity('stop')
-						  .removeClass('rtl ltr')
-						  .addClass('exploding');	// 0.7s animation
+			return this;
+		}
 
-					setTimeout(function() {
-						$plane.remove();
-						updateStats();
-					}, 700);
-			  });
-	}
+		destroy() {
+			this.sfx.pause();
 
-	function explodePlane($plane) {
-		console.log("boom");
-		// Stop continuous sound effect FIXME TODO
-		//sounds[eval($plane.data("planeType"))].stop();	// Stop the sound of that plane (WHAT IF 2 FLYING?)
-		//sm2.stop(eval('sfx_'+$plane.data("planeType")));	// Stops the sound by soundid
+			explode(this.el);
+			console.log("boom");
 
-		if (game.levelStats.planeKills % 40 === 0) $('#killCount').html();			// Reset kill icons after 40
-		if (game.levelStats.planeKills >= game.levelStats.killsNeeded) gameOver(1);		// Enough kills to beat the level!
+			game.levelStats.checkKills();
 
-		//$plane.velocity('stop', true);	// clearQueue enabled
-		explode($plane);
-	}
-
-	function explode($obj) {
-		sounds.playSound('explosion');
-		$obj.velocity('stop', true)	// clearQueue enabled
-			.removeClass('rtl ltr grenade')
-			.addClass('exploding');	// 0.7s animation
-
-		setTimeout(function() {
-			$obj.remove();
-			updateStats();
-		}, 700);
+			return this;
+		}
 	}
 
 
@@ -1240,7 +1217,7 @@ var Parattack = (function($) {
 
 			// Set his direction and destination:
 			if (this.el.position().left < 400) {
-				this.el.addClass('left').data("dest", 344);		// left bunker edge
+				this.el.addClass('left').data("dest", 340);		// left bunker edge
 			}
 			else {
 				this.el.addClass('right').data("dest", 436);	// right bunker edge
@@ -1249,6 +1226,7 @@ var Parattack = (function($) {
 			// Register as air para & increment global para counter:
 			game.entities.activeParas.push(this);
 			game.entities.mid++;
+
 			return this;
 		}
 
@@ -1299,7 +1277,7 @@ var Parattack = (function($) {
 			setTimeout(function() {
 				this.deregister();
 				this.el.remove();
-				updateStats();
+				updateDebuggingStats();
 			}.bind(this), 700);
 		}
 
@@ -1324,7 +1302,7 @@ var Parattack = (function($) {
 			else if (this.el.attr("id").startsWith('para')) {
 				game.entities.activeParas.splice(game.entities.activeParas.indexOf(this), 1);
 			}
-			updateStats();
+			updateDebuggingStats();
 			return this;
 		}
 
@@ -1344,19 +1322,23 @@ var Parattack = (function($) {
 			}
 
 			game.levelStats.landedParas++;
-			updateStats();
-			this.walk();
+			updateDebuggingStats();
+
+			return this.walk();
 		}
 
 		walk() {
 			// Whether left or right, simply animate the groundPara towards his dest:
 			this.el.addClass("walking");
+
 			var deltaX = this.el.data('dest') - this.el.position().left;
 			var duration = Math.abs(deltaX) / game.params.paraWalkSpeed;
 			console.log(this.el.data('dest'), deltaX, duration);
 			this.el.velocity({translateX: deltaX+"px"}, duration, "linear", function() {
 				this.reachBunker();
 			}.bind(this));
+
+			return this;
 		}
 
 		reachBunker() {
@@ -1387,9 +1369,11 @@ var Parattack = (function($) {
 				righties--;
 			}
 
-			updateStats();
+			updateDebuggingStats();
 			if (game.entities.bunkerParasL.length >= player.gun.defence) paraBunkerStorm('left');
 			if (game.entities.bunkerParasR.length >= player.gun.defence) paraBunkerStorm('right');
+
+			return this;
 		}
 
 		//storm() {}
@@ -1440,19 +1424,12 @@ var Parattack = (function($) {
 
 
 	/************************/
-	/*! ANIMATION FUNCTIONS */	//TODO: combine into single resume fn
+	/*! ANIMATION FUNCTIONS */
 	/************************/
 	function resumePlanes() {
-		for (var $plane of game.entities.activePlanes) {
-			var deltaX = $plane.data("dest") - $plane.position().left;
-			//var newTime = ($plane.hasClass('ltr')) ? speed * (800-x)/800 : speed * (x/800);		// distance / speed
-			var newTime = Math.abs(deltaX) / $plane.data("speed");		// distance / speed
-
-			// Re-animate the plane:
-			$plane.velocity({translateX: deltaX}, newTime, 'linear', function() {
-				$plane.remove();
-				deregisterPlane($plane);
-			});
+		// Resume animation of all stopped planes:
+		for (var plane of game.entities.activePlanes) {
+			plane.fly();
 		}
 	}
 
@@ -1470,10 +1447,37 @@ var Parattack = (function($) {
 		}
 	}
 
+	function resumeBullets() {					// Restart bullets on unpause
+		for (var $bullet of game.entities.activeBullets) {
+			var XTarget = $bullet.data("XTarget");		// Read its target
+			var y = parseInt($bullet.css("top"));		// Read its y-coord
+			var oldTime = $bullet.data("bulletTime");	// Read its old travel time
+			var newTime = oldTime * y/548;				// Calculate the new travel time
 
-	/************************/
-	/*! SLAUGHTER FUNCTIONS */
-	/************************/
+			$bullet.velocity({translateY:0, "left":XTarget}, newTime, "linear", function() {	// Re-animate the bullet
+				// When anim finishes, remove bullet:
+				$(this).remove();
+				deregisterBullet(this);
+			});
+		}
+	}
+
+
+	/**************************/
+	/*! DESTRUCTION FUNCTIONS */
+	/**************************/
+	function explode($obj) {
+		sounds.playSound('explosion');
+		$obj.velocity('stop', true)	// clearQueue enabled
+			.removeClass('rtl ltr grenade')
+			.addClass('exploding');	// 0.7s animation
+
+		setTimeout(function() {
+			$obj.remove();
+			updateDebuggingStats();
+		}, 700);
+	}
+
 	function grenade(side) {
 		var target = (side === 'left') ? '-=30px' : '+=30px'; 	// Aim left or right?
 
@@ -1490,7 +1494,7 @@ var Parattack = (function($) {
 			});
 		player.grenades--;
 		setGrenades();
-		updateStats();
+		updateDebuggingStats();
 	}
 
 	function killGPs(groundzero) {
@@ -1508,7 +1512,7 @@ var Parattack = (function($) {
 			}
 		}
 		rebuildGroundArrays();
-		updateStats();
+		updateDebuggingStats();
 	}
 
 	function driveBy() {
@@ -1556,7 +1560,7 @@ var Parattack = (function($) {
 			if (idPrefix === 'bunker' && $(this).hasClass('right')) game.entities.bunkerParasR.push($(this));
 			if (idPrefix === 'ground' && $(this).hasClass('right')) game.entities.groundParasR.push($(this));
 		});
-		updateStats();
+		updateDebuggingStats();
 	}
 
 
@@ -1586,7 +1590,7 @@ var Parattack = (function($) {
 					break;
 				case 'retry':
 					player.gun.ammo = player.gun.savedAmmo; // Get our saved ammo level back (retrying level)
-					updateStats();
+					updateDebuggingStats();
 					startLevel(game.level);
 					break;
 				case 'quit':
@@ -1665,7 +1669,7 @@ var Parattack = (function($) {
 		// Start game from title screen:
 		$('img#title').click(function() {
 			$(this).velocity({translateY:"-600px"}, 500, 'linear', function() {
-				updateStats();
+				updateDebuggingStats();
 				ui.showOverlay('menu');
 			});
 		});
