@@ -580,6 +580,7 @@ var Parattack = (function($) {
 		levelTimer.start();				// Start a new game timer from zero
 		$('div.overlay').hide();		// (just in case)
 		loops.runAll();
+		if (game.options.musicEnabled) sounds.playSound('music2');
 	}
 
 	function pause() {
@@ -1035,7 +1036,7 @@ var Parattack = (function($) {
 				var withinX = (x >= a - 2 && x <= a + 50);
 				var withinY = (y >= b - 2 && y <= b + 22);
 
-				console.log(plane.el.attr('id'), "+", $bullet.attr('id'), "proximity ([", x, ",", a, "], [", y, ",", b, "])", withinX, withinY);
+				//console.log(plane.el.attr('id'), "+", $bullet.attr('id'), "proximity ([", x, ",", a, "], [", y, ",", b, "])", withinX, withinY);
 
 				if (withinX) {		// Simplistic proximity test
 					if (withinY) {	// Bullet inside plane coords (+2px margin)
@@ -1064,12 +1065,6 @@ var Parattack = (function($) {
 
 						return;		// Break out of this bullet's detection cycle if a plane was hit
 					}
-					else {
-						console.warn('near miss... X ok');
-					}
-				}
-				else if (withinY) {
-					console.warn('near miss... Y ok');
 				}
 				// Check for bullet's expiry:
 				else if (x < 0 || x > 800 || y < 4) {
@@ -1198,7 +1193,6 @@ var Parattack = (function($) {
 			if (this.sfx && !this.sfx.paused && !this.sfx.ended) this.sfx.pause();
 
 			explode(this.el);
-			console.log("boom");
 
 			game.levelStats.checkKills();
 
@@ -1391,42 +1385,24 @@ var Parattack = (function($) {
 		console.warn('paras are storming your bunker on the '+side+' side!');
 		sounds.playSound('bunkerStorm');
 
-		// rewrite this animation FIXME
-		var stormers;
-		if (side === 'right') {
-			stormers = game.entities.bunkerParasR;
-			stormers[0].el.velocity({"top":"560px","left":"440px"}, 700, 'linear', function() {
-				stormers[1].el.velocity({"top":"542px","left":"440px"}, 800, 'linear', function() {
-					stormers[2].el.velocity({"top":"524px","left":"440px"}, 900, 'linear', function() {
-						$('<div class="bullet"></div>')
-							.css("left","440px")
-							.css("top","525px")
-							.appendTo('#gamefield')
-							.velocity({translateX: "-40px"}, 1000, 'linear', function() {		// Fire a bullet at the gun
-								$(this).remove();
-								explodeGun();
-							});
-					});
+		var stormers = (side === 'right') ? game.entities.bunkerParasR : game.entities.bunkerParasL;
+		var originX  = (side === 'right') ? "440px" : "350px";
+		// Form a human tower:
+		stormers[0].el.velocity({"top":"560px","left":originX}, 700, 'linear', function() {
+			stormers[1].el.velocity({"top":"542px","left":originX}, 800, 'linear', function() {
+				stormers[2].el.velocity({"top":"524px","left":originX}, 900, 'linear', function() {
+					// Fire a bullet at the turret gun:
+					$('<div class="bullet"></div>')
+						.css("top","522px")
+						.css("left",originX)
+						.appendTo('#gamefield')
+						.velocity({"left": "400px"}, 800, 'linear', function() {
+							$(this).remove();
+							explodeGun();
+						});
 				});
 			});
-		}
-		else if (side === 'left') {
-			stormers = game.entities.bunkerParasL;
-			stormers[0].el.velocity({"top":"560px","left":"350px"}, 700, 'linear', function() {
-				stormers[1].el.velocity({"top":"542px","left":"350px"}, 800, 'linear', function() {
-					stormers[2].el.velocity({"top":"524px","left":"350px"}, 900, 'linear', function() {
-						$('<div class="bullet"></div>')
-							.css("left","360px")
-							.css("top","525px")
-							.appendTo('#gamefield')
-							.velocity({translateX:"40px"}, 1000, 'linear', function() {		// Fire a bullet at the gun
-								$(this).remove();
-								explodeGun();
-							});
-					});
-				});
-			});
-		}
+		});
 	}
 
 
@@ -1435,6 +1411,7 @@ var Parattack = (function($) {
 	/**************************/
 	function explode($obj) {
 		sounds.playSound('explosion');
+		console.log("boom");
 		$obj.velocity('stop', true)	// clearQueue enabled
 			.removeClass('rtl ltr grenade')
 			.addClass('exploding');	// 0.7s animation
@@ -1478,7 +1455,6 @@ var Parattack = (function($) {
 				else sounds.playSound('paraHit2');
 			}
 		}
-		rebuildGroundArrays();
 		updateDebuggingStats();
 	}
 
@@ -1508,26 +1484,6 @@ var Parattack = (function($) {
 			clearInterval(detectRunOverParas);	// Screen traversed, stop detecting collisions
 		});
 
-		rebuildGroundArrays();		// Clears the arrays
-	}
-
-	// Use this directly after grenade, driveby, plane crash...
-	function rebuildGroundArrays() {
-		// Rebuild the 4 arrays from scratch (easier than splicing shit around)
- 		game.entities.groundParasR = [];
-		game.entities.groundParasL = [];
-		game.entities.bunkerParasR = [];
-		game.entities.bunkerParasL = [];
-
-		$('#gamefield div.para.ground').each(function() {		// Get every para on the ground
-			var idPrefix = $(this).attr("id").substr(0,6);
-			// Assign him to the correct array:
-			if (idPrefix === 'bunker' && $(this).hasClass('left')) game.entities.bunkerParasL.push($(this));
-			if (idPrefix === 'ground' && $(this).hasClass('left')) game.entities.groundParasL.push($(this));
-			if (idPrefix === 'bunker' && $(this).hasClass('right')) game.entities.bunkerParasR.push($(this));
-			if (idPrefix === 'ground' && $(this).hasClass('right')) game.entities.groundParasR.push($(this));
-		});
-		updateDebuggingStats();
 	}
 
 
