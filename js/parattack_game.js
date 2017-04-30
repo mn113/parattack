@@ -47,8 +47,8 @@ var Parattack = (function($) {
 				level7:[.08,.13,.16,.23,.17,.12,.09],			// level 7: 100%
 				level8:[.05,.10,.15,.25,.20,.15,.10]			// level 8: 100%
 			},
-			life_thr: 4000,
-			nade_thr: 2500
+			extraLifePointsThreshold: 4000,
+			extraGrenadePointsThreshold: 2500
 		},
 		entities: {		// Holds the sprite objects created and destroyed each level
 			activePlanes:[],
@@ -134,19 +134,19 @@ var Parattack = (function($) {
 
 	game.levelStats.scores.checkRewards = function() {
 		var tot = player.scores.cumulativeScore;	// MUST BE SEPARATE FROM SHOP SCORE
-		if (tot > game.params.life_thr) {
+		if (tot > game.params.extraLifePointsThreshold) {
 			player.lives++;
-			//updateLives();
+			updateLives();
 			// Show message
-			console.info('Gained an extra life for '+game.params.life_thr+' points.');
-			game.params.life_thr += 4000;
+			console.info('Gained an extra life for '+game.params.extraLifePointsThreshold+' points.');
+			game.params.extraLifePointsThreshold += 4000;
 		}
-		if (tot > game.params.nade_thr) {
+		if (tot > game.params.extraGrenadePointsThreshold) {
 			player.grenades++;
-			//setGrenades();
+			setGrenades();
 			// Show message
-			console.info('Gained a grenade for '+game.params.nade_thr+' points.');
-			game.params.nade_thr += 2500;
+			console.info('Gained a grenade for '+game.params.extraGrenadePointsThreshold+' points.');
+			game.params.extraGrenadePointsThreshold += 2500;
 		}
 	};
 
@@ -434,7 +434,7 @@ var Parattack = (function($) {
 		}
 	};
 
-	shop.buyItem = function(item) {		// ITEM NOT BEING PASSED FIXME
+	shop.buyItem = function(item) {
 		var cost = this.prices[item];
 		console.log(item+', '+cost);
 		if (player.scores.spendableScore < cost) {			// If sufficient funds not available
@@ -447,16 +447,19 @@ var Parattack = (function($) {
 				$('#ammo').html(formatAmmo(player.gun.ammo));
 				this.showMessage('You bought 50 ammo.');
 				break;
+
 			case 'ammo100':
 				player.gun.ammo += 100;
 				$('#ammo').html(formatAmmo(player.gun.ammo));
 				this.showMessage('You bought 100 ammo.');
 				break;
+
 			case 'ammo250':
 				player.gun.ammo += 250;
 				$('#ammo').html(formatAmmo(player.gun.ammo));
 				this.showMessage('You bought 250 ammo.');
 				break;
+
 			case 'grenade':
 				if (player.grenades < player.maxGrenades) {
 					player.grenades++;
@@ -464,11 +467,13 @@ var Parattack = (function($) {
 					this.showMessage('You bought a grenade.');
 				}
 				break;
+
 			case 'defenceUpgrade':
-				$(this).parent.remove();	// Remove the entire line so it can't be bought again
 				this.showMessage("You upgraded your gun's defence.");
 				player.gun.defence += 1;
+				if (player.gun.defence === 5) $("#defenceUpgrade").remove();	// Remove so it can't be bought again
 				break;
+
 			case 'extraLife':
 				if (player.lives < player.maxLives) {
 					player.lives++;
@@ -476,12 +481,14 @@ var Parattack = (function($) {
 					this.showMessage('You bought an extra life.');
 				}
 				break;
+
 			case 'bulletAccelerator':
-				$(this).parent.remove();	// Remove the entire line so it can't be bought again
 				$('#shop h5').html('You bought the Bullet Accelerator. I hope it helps!');
 				game.params.bulletSpeed += 0.02;
 				player.gun.bulletAccLevel += 1;
+				$("#bulletAccelerator").parent.remove();	// Remove so it can't be bought again
 				break;
+
 			case 'hamburger':
 				this.showMessage("You bought a hamburger. Yum!");
 				break;
@@ -1554,6 +1561,8 @@ var Parattack = (function($) {
 					startLevel(1);
 					break;
 				case 'proceed':
+				case 'shop_proceed':
+				case 'score_proceed':
 					startLevel(game.level+1);
 					break;
 				case 'retry':
@@ -1574,6 +1583,8 @@ var Parattack = (function($) {
 					ui.showOverlay('shop');
 					break;
 				case 'back':
+				case 'shop_back':
+				case 'score_back':
 					ui.showOverlay(game.lastOverlay);
 					break;
 				case 'resume':
@@ -1644,7 +1655,7 @@ var Parattack = (function($) {
 
 		// Shop screen:
 		$('#shop p a').click(function() {	// Each time a 'Buy' button is clicked
-			var item = $(this).attr("id");		// Get id of clicked button
+			var item = $(this).parent().attr("id");		// Get id of clicked button
 			shop.buyItem(item);
 		});
 
