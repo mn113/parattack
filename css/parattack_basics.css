@@ -245,5 +245,5 @@ p[id^=active] {
 }
 
 #debug2 {
-	display:none;
+	xdisplay:none;
 }
