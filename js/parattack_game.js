@@ -968,109 +968,118 @@ var Parattack = (function($) {
 		}
 	}
 
-	function detectCollisionsPlanes() {
-
-	}
-
 	function detectCollisions() {
 		// Get each of our bullets one by one:
-		for (var $bullet of game.entities.activeBullets) {				// 8 bullets max
+		for (var $bullet of game.entities.activeBullets) {		// 8 bullets max
 			var x = $bullet.position().left;
 			var y = $bullet.position().top;
 
-			if (x < 0 || x > 800 || y < 4) {			// Get rid of bullets that already went offscreen (low angle)
+			// Get rid of bullets that already went offscreen (low angle):
+			if (x < 0 || x > 800 || y < 4) {
 				deregisterBullet($bullet);
 				$bullet.remove();
-				continue;					// Don't test this one but continue testing the rest of the bullets
+				continue;			// Don't test this one but continue testing the rest of the bullets
 			}
+			// Game area has 2 distinct areas, above and below plane line:
+			else if (y > 100) {
+				detectCollisionsParas($bullet);
+			}
+			else {
+				detectCollisionsPlanes($bullet);
+			}
+		}
+	}
 
-			// Test against paras first (bullet can pass through them):
-			for (var para of game.entities.activeParas) {				// 5 air paras max
-				var p = para.el.position().left;
-				var q = para.el.position().top;
+	function detectCollisionsParas($bullet) {
+		// Test against paras first (bullet can pass through them):
+		for (var para of game.entities.activeParas) {				// 5 air paras max
+			var a = para.el.position().left;
+			var b = para.el.position().top;
+			// Resample bullet position:
+			var x = $bullet.position().left;
+			var y = $bullet.position().top;
+
+			var withinX = (x >= a - 2 && x <= a + 22);
+			var withinY = (y >= b - 2 && y <= b + 22);
+
+			if (withinX) {		// Simplistic proximity test
+				if (withinY) {	// Bullet inside para coords (+2px margin)
+					para.die();
+					console.log(para.el.attr("id")+" was hit by "+$bullet.attr("id")+"!");
+
+					// Stats:
+					game.levelStats.hits++;
+					game.levelStats.allKillsThisLevel[7]++;					// Count 1 para kill
+					player.gun.ammo += game.params.extraBulletsPerKill[7];	// Gain his ammo bonus
+
+					// Combo test:
+					if ($bullet.data("hits") > 0) showCombo(x,y, $bullet.data("hits"));	// can be 1,2 or 3 depending on hits
+					$bullet.data("hits",($bullet.data("hits") + 1));
+				}
+			}
+			// Check for bullet's expiry:
+			else if (x < 0 || x > 800 || y < 4) {
+				deregisterBullet($bullet);
+				$bullet.remove();
+				return;	// Bullet gone, test no more paras
+			}
+		}
+	}
+
+	function detectCollisionsPlanes($bullet) {
+		// Test against planes only when bullet is in the plane zone:
+		if ($bullet.position().top < 100) {
+			for (var plane of game.entities.activePlanes) {			// 5 planes max
+				var a = plane.el.position().left;
+				var b = plane.el.position().top;
 				// Resample bullet position:
-				x = $bullet.position().left;
-				y = $bullet.position().top;
+				var x = $bullet.position().left;
+				var y = $bullet.position().top;
 
-				if (Math.abs(x - p) < 25) {												// Simplistic X-proximity test
-					if ((x >= p - 4 && x <= p + 24) && (y >= q - 4 && y <= q + 24)) {	// Bullet inside para coords (+4px margin)
-						para.die();
-						console.log(para.el.attr("id")+" was hit by "+$bullet.attr("id")+"!");
-						// Stats:
+				var withinX = (x >= a - 2 && x <= a + 50);
+				var withinY = (y >= b - 2 && y <= b + 22);
+
+				console.log(plane.el.attr('id'), "+", $bullet.attr('id'), "proximity ([", x, ",", a, "], [", y, ",", b, "])", withinX, withinY);
+
+				if (withinX) {		// Simplistic proximity test
+					if (withinY) {	// Bullet inside plane coords (+2px margin)
+						// Update kill stats:
 						game.levelStats.hits++;
-					 	game.levelStats.allKillsThisLevel[7]++;					// Count 1 para kill
-						player.gun.ammo += game.params.extraBulletsPerKill[7];	// Gain his ammo bonus
+						game.levelStats.planeKills++;
+						game.levelStats.allKillsThisLevel[plane.el.data("type")]++;	// Count 1 kill
+						$('<div class="kill"></div>').appendTo('#killCount');		// Add 1 kill icon to counter
+						player.gun.ammo += plane.el.data("ammoBonus");				// Gain its ammo bonus
+						console.info(plane.el.attr("id")+" was hit by "+$bullet.attr("id")+"! ("+game.levelStats.planeKills+"k)");
 
 						// Combo test:
-						if ($bullet.data("hits") > 0) showCombo(x,y, $bullet.data("hits"));	// can be 1,2 or 3 depending on hits
-						$bullet.data("hits",($bullet.data("hits") + 1));
+						var hid = $bullet.data("bid");					// hitID
+						var comboSize = measureComboChain(hid);			// Test the hitID for combos
+						if (comboSize > 0) {
+							showCombo(x,y, comboSize);
+							console.log("COMBOOOO! ("+comboSize+")");
+						}
+						if ($bullet.data("hits") > 0) showCombo(x,y, $bullet.data("hits"));
 
-						break;	// Don't test the other paras against this bullet right now
+						// Destroy plane violently:
+						if (plane.el.data("planeType") === 'messerschmitt') plane.dive();
+						else plane.destroy();
+						deregisterBullet($bullet);
+						$bullet.remove();				// Disappear the bullet
+
+						return;		// Break out of this bullet's detection cycle if a plane was hit
 					}
+					else {
+						console.warn('near miss... X ok');
+					}
+				}
+				else if (withinY) {
+					console.warn('near miss... Y ok');
 				}
 				// Check for bullet's expiry:
 				else if (x < 0 || x > 800 || y < 4) {
 					deregisterBullet($bullet);
 					$bullet.remove();
-					break;	// Bullet gone, test no more paras
-				}
-			}
-
-
-			// Test against planes only when bullet is in the plane zone:
-			if (y < 100) {
-				for (var plane of game.entities.activePlanes) {			// 5 planes max
-					var a = plane.el.position().left;
-					var b = plane.el.position().top;
-					// Resample bullet position:
-					x = $bullet.position().left;
-					y = $bullet.position().top;
-
-					var withinX = (x >= a - 2 && x <= a + 50);
-					var withinY = (y >= b - 2 && y <= b + 22);
-
-					console.log(plane.el.attr('id'), "+", $bullet.attr('id'), "proximity ([", x, ",", a, "], [", y, ",", b, "])", withinX, withinY);
-
-					if (withinX) {		// Simplistic proximity test
-						if (withinY) {	// Bullet inside plane coords (+2px margin)
-							// Update kill stats:
-							game.levelStats.hits++;
-							game.levelStats.planeKills++;
-						 	game.levelStats.allKillsThisLevel[plane.el.data("type")]++;	// Count 1 kill
-							$('<div class="kill"></div>').appendTo('#killCount');		// Add 1 kill icon to counter
-						 	player.gun.ammo += plane.el.data("ammoBonus");				// Gain its ammo bonus
-							console.info(plane.el.attr("id")+" was hit by "+$bullet.attr("id")+"! ("+game.levelStats.planeKills+"k)");
-
-							// Combo test:
-							var hid = $bullet.data("bid");					// hitID
-							var comboSize = measureComboChain(hid);			// Test the hitID for combos
-							if (comboSize > 0) {
-								showCombo(x,y, comboSize);
-								console.log("COMBOOOO! ("+comboSize+")");
-							}
-							if ($bullet.data("hits") > 0) showCombo(x,y, $bullet.data("hits"));
-
-							// Destroy plane violently:
-							if (plane.el.data("planeType") === 'messerschmitt') plane.dive();
-							else plane.destroy().deregister();
-							deregisterBullet($bullet);
-							$bullet.remove();				// Disappear the bullet
-
-							break;		// Break out of this bullet's detection cycle if a plane was hit
-						}
-						else {
-							console.warn('near miss... X ok');
-						}
-					}
-					else if (withinY) {
-						console.warn('near miss... Y ok');
-					}
-					// Check for bullet's expiry:
-					else if (x < 0 || x > 800 || y < 4) {
-						deregisterBullet($bullet);
-						$bullet.remove();
-						break;	// Bullet gone, test no more planes
-					}
+					return;	// Bullet gone, test no more planes
 				}
 			}
 		}
@@ -1190,7 +1199,9 @@ var Parattack = (function($) {
 		}
 
 		destroy() {
-			this.sfx.pause();
+			this.deregister();
+
+			if (this.sfx && !this.sfx.paused && !this.sfx.ended) this.sfx.pause();
 
 			explode(this.el);
 			console.log("boom");
@@ -1260,6 +1271,7 @@ var Parattack = (function($) {
 		}
 
 		die() {
+			this.deregister();
 			// Sound effect:
 			var n = 1 + Math.floor(5*Math.random());	// Integer 1-5
 			switch (n) {
@@ -1275,7 +1287,6 @@ var Parattack = (function($) {
 				   .addClass('shot');
 			// Remove him when done:
 			setTimeout(function() {
-				this.deregister();
 				this.el.remove();
 				updateDebuggingStats();
 			}.bind(this), 700);
