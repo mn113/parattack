@@ -2,7 +2,7 @@
 
 An HTML and JavaScript-based single-player action game to play in the browser. Started in 2009 as my first major JS project, it's actually a remake of an Amiga game from 1993. The graphics are in fact directly lifted from that game. If you're the author of the original Parattack, please get in touch!
 
-Play it and leave feedback on [Itch.io](https://mn3monic.itch.io/parattack-redux) or [raise an issue](https://github.com/mn113/hextension2/issues/) if it broke.
+Play it and leave feedback on [Itch.io](https://mn3monic.itch.io/parattack-redux) or [raise an issue](https://github.com/mn113/parattack/issues/) if it broke.
 
 ![Parattack screenshot](screenshots/Screen-Shot-5.png)
 
